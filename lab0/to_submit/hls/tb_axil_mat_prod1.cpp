@@ -89,8 +89,8 @@ int check_matC()
 }
 int main()
 {
-	init_vecs();
-//	read_vecs_from_file();
+//	init_vecs();
+	read_vecs_from_file();
 
 	print_mat(matA, N1, N2);
 	print_mat(matB, N2, N3);
@@ -101,5 +101,5 @@ int main()
 	print_mat(matC, N1, N3);
 	print_mat(matChw, N1, N3);
 
-	return 0;//(check_matC());
+	return (check_matC());
 }
