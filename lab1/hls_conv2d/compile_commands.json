@@ -1,0 +1,26 @@
+[
+  {
+    "directory": "/home/fpicarras/Desktop/hwsw-IST-24-25/lab1/hls_conv2d",
+    "arguments": [
+      "/home/fpicarras/Xilinx/Vitis/2024.2/vcxx/libexec/clang++",
+      "--gcc-toolchain=/home/fpicarras/Xilinx/Vitis/2024.2/tps/lnx64/gcc-8.3.0",
+      "-fhls",
+      "-hls-syn-headers-dir=/home/fpicarras/Xilinx/Vitis/2024.2/common/technology/autopilot",
+      "-c",
+      "/home/fpicarras/Desktop/hwsw-IST-24-25/lab1/prof_sources/hls/axil_conv2D.cpp"
+    ],
+    "file": "/home/fpicarras/Desktop/hwsw-IST-24-25/lab1/prof_sources/hls/axil_conv2D.cpp"
+  },
+  {
+    "directory": "/home/fpicarras/Desktop/hwsw-IST-24-25/lab1/hls_conv2d",
+    "arguments": [
+      "/home/fpicarras/Xilinx/Vitis/2024.2/vcxx/libexec/clang++",
+      "--gcc-toolchain=/home/fpicarras/Xilinx/Vitis/2024.2/tps/lnx64/gcc-8.3.0",
+      "-fhls-tb",
+      "-hls-sim-headers-dir=/home/fpicarras/Xilinx/Vitis/2024.2/include",
+      "-c",
+      "/home/fpicarras/Desktop/hwsw-IST-24-25/lab1/prof_sources/hls/tb_axil_conv2D.cpp"
+    ],
+    "file": "/home/fpicarras/Desktop/hwsw-IST-24-25/lab1/prof_sources/hls/tb_axil_conv2D.cpp"
+  }
+]
