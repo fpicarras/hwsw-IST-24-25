@@ -10,6 +10,7 @@
 #include <stdio.h>
 #include <assert.h>
 #include "image_conv2D.h"
+#include "xaxil_conv2D.h"
 
 static unsigned char *ch_images;    /* images data region */
 static unsigned char *image_in;     /* image to be processed */
@@ -86,13 +87,33 @@ void HWSW_conv2D(const unsigned char *matrix_in, unsigned char *matrix_out) {
     /* =====================================================================================
      * ======== DEVELOP THE HLS ROUTINE TO SIMULATE DE HARDWARE IP BELOW THIS LINE! ========
      * ===================================================================================== */
+    sw_convolution_2D(matrix_in, matrix_out);
 
 #elif defined(USE_HW_IP)
 
     /* =====================================================================================
      * ========== DEVELOP THE ROUTINE TO CONTROL DE HARDWARE IP BELOW THIS LINE! ===========
      * ===================================================================================== */
+    XAxil_conv2d conv2d;
+    XAxil_conv2d_Config *cfg;
 
+    // Initialize IP
+    cfg = XAxil_conv2d_LookupConfig(XPAR_MY_IP_0_DEVICE_ID);
+    XAxil_conv2d_CfgInitialize(&conv2d, cfg);
+    
+    while(!XAxil_conv2d_IsReady(&conv2d));
+
+    // Set Inputs
+    XAxil_conv2d_Write_image_in_Bytes(&conv2d, 0, matrix_in, IMAGE_HEIGHT * IMAGE_WIDTH);
+    XAxil_conv2d_Write_weights_Bytes(&conv2d, 0, kernel, KERNEL_SIZE * KERNEL_SIZE);
+    XAxil_conv2d_Set_bias(&conv2d, bias);
+
+    XAxil_conv2d_Start(&conv2d);
+
+    while(!XAxil_conv2d_IsDone(&conv2d));
+
+    // Read Output
+    XAxil_conv2d_Read_image_out_Bytes(&conv2d, 0, matrix_out, OUTPUT_HEIGHT*OUTPUT_WIDTH);
 #endif //HLS_SIMULATION/USE_HW_IP
 }
 
@@ -111,11 +132,7 @@ int main() {
     /* Performs memory assignment  */
     ch_images = (unsigned char *) MEM_IMAGES_BASE_ADDRESS;
     image_out = (unsigned char *) MEM_DATA_BASE_ADDRESS;
-
-    /* =====================================================================================
-     * ================= DON'T FORGET TO ALLOCATE MEMORY FOR hw_image_out! =================
-     * ===================================================================================== */
-    // hw_image_out = (unsigned char *) ??????
+    hw_image_out = (unsigned char *) MEM_OUTPUT_BASE_ADDRESS;
 
 #ifndef EMBEDDED
     /* Read images from file */

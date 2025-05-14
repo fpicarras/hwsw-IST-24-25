@@ -28,8 +28,8 @@
 /* ============================= START OF RUN CONFIGURATION ============================ */
 
 //#define HLS_SIMULATION               /* uncomment to enable HLS simulation */
-//#define EMBEDDED                     /* uncomment to run in Zynq */
-//#define USE_HW_IP                    /* uncomment to accelerate convolution with hardware IP */
+#define EMBEDDED                     /* uncomment to run in Zynq */
+#define USE_HW_IP                    /* uncomment to accelerate convolution with hardware IP */
 //#define PRINT_IMAGE_IN               /* uncomment print input image to file */
 #define PRINT_IMAGE_OUT              /* print output image to file */
 #define IMAGE_TO_CONVOLVE 1          /* selected input image */
@@ -79,6 +79,7 @@ static int bias = 0;
 #define IMAGE_SIZE (IMAGE_HEIGHT * IMAGE_WIDTH * IMAGE_CHANNELS)
 #define OUTPUT_HEIGHT (IMAGE_HEIGHT - KERNEL_SIZE + 1)
 #define OUTPUT_WIDTH (IMAGE_WIDTH - KERNEL_SIZE + 1)
+#define OUTPUT_SIZE (OUTPUT_HEIGHT * OUTPUT_WIDTH * IMAGE_CHANNELS)
 
 #define IMAGE_R(IMG, HEIGHT, WIDTH, I, J) ((IMG)[(I) * (WIDTH) + (J)])
 #define IMAGE_G(IMG, HEIGHT, WIDTH, I, J) ((IMG)[(WIDTH) * (HEIGHT) + (I) * (WIDTH) + (J)])
@@ -93,12 +94,15 @@ static int bias = 0;
 // DDR pre-defined data regions
 #define MEM_IMAGES_BASE_ADDRESS 0x10000000
 #define MEM_DATA_BASE_ADDRESS 0x11000000
+#define MEM_OUTPUT_BASE_ADDRESS 0x12000000
 #else
 static unsigned char memory_images[N_IMAGES * IMAGE_SIZE];
-static unsigned char memory_data[OUTPUT_HEIGHT * OUTPUT_WIDTH * 3];
+static unsigned char memory_data[OUTPUT_SIZE];
+static unsigned char memory_output[OUTPUT_SIZE];
 
 #define MEM_IMAGES_BASE_ADDRESS memory_images
 #define MEM_DATA_BASE_ADDRESS memory_data
+#define MEM_OUTPUT_BASE_ADDRESS memory_output
 #endif
 
 /**
