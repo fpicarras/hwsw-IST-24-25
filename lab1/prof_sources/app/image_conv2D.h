@@ -3,8 +3,8 @@
 
 /* =========================== START OF DATASET CONFIGURATION ========================== */
 
-#define IMAGES_FILENAME "images.bin" /* file where the images are stored */
-#define N_IMAGES 200                 /* number of images in the binary file */
+#define IMAGES_FILENAME "/home/joao-pedro/Documents/Tecnico/Y1-P4/HW/Labs/hwsw-IST-24-25/images/images_ppm/image0.bin" /* file where the images are stored */
+#define N_IMAGES 1                 /* number of images in the binary file */
 #define IMAGE_HEIGHT 88              /* width of the images */
 #define IMAGE_WIDTH IMAGE_HEIGHT     /* height of the images */
 #define IMAGE_CHANNELS 3             /* number of channels (red + green + blue) */
@@ -28,9 +28,9 @@
 /* ============================= START OF RUN CONFIGURATION ============================ */
 
 //#define HLS_SIMULATION               /* uncomment to enable HLS simulation */
-#define EMBEDDED                     /* uncomment to run in Zynq */
-#define USE_HW_IP                    /* uncomment to accelerate convolution with hardware IP */
-//#define PRINT_IMAGE_IN               /* uncomment print input image to file */
+//#define EMBEDDED                     /* uncomment to run in Zynq */
+//#define USE_HW_IP                    /* uncomment to accelerate convolution with hardware IP */
+#define PRINT_IMAGE_IN               /* uncomment print input image to file */
 #define PRINT_IMAGE_OUT              /* print output image to file */
 #define IMAGE_TO_CONVOLVE 1          /* selected input image */
 

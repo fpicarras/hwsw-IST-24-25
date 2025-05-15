@@ -10,7 +10,9 @@
 #include <stdio.h>
 #include <assert.h>
 #include "image_conv2D.h"
+#ifdef EMBEDDED
 #include "xaxil_conv2D.h"
+#endif
 
 static unsigned char *ch_images;    /* images data region */
 static unsigned char *image_in;     /* image to be processed */
@@ -53,7 +55,7 @@ void print_ppm(unsigned char *image, int height, int width, const char *prefix, 
     sprintf(filename, "%s_image_%d.ppm", prefix, suffix);
 
     /* Open image file */
-    FILE *image_file = fopen(filename, "w");
+    FILE *image_file = fopen(filename, "wb");
     assert(image_file);
 
     printf("Printing %s image %d to file %s\n\r", prefix, suffix, filename);
@@ -61,21 +63,21 @@ void print_ppm(unsigned char *image, int height, int width, const char *prefix, 
     FILE *image_file = stdout;
 #endif //EMBEDDED
 
-    /* Print PPM header */
-    fprintf(image_file, "P3\n%d %d 255\n", height, width);
+    /* Print binary PPM header */
+    fprintf(image_file, "P6\n%d %d\n255\n", width, height);
 
-    /* Print pixel values to file (see http://paulbourke.net/dataformats/ppm/) */
-    for (int i = 0, k = 0; i < height; i++)
-        for (int j = 0; j < width; j++) {
-            fprintf(image_file, "%3d ", IMAGE_R(image, height, width, i, j));
-            fprintf(image_file, "%3d ", IMAGE_G(image, height, width, i, j));
-            fprintf(image_file, "%3d ", IMAGE_B(image, height, width, i, j));
-
-            if ((++k % 15) == 0)
-                fprintf(image_file, "\n");
+    /* Write binary RGB pixel data */
+    for (int i = 0; i < height*width*3; i++) {
+        // fputc(image[i], image_file);
+        fprintf(image_file, "%2x ", image[i]);
+        if((i+1)%height == 0) {
+            fprintf(image_file, "\n");
         }
+    }
 
     fprintf(image_file, "\n");
+
+
 #ifndef EMBEDDED
     fclose(image_file);
 #endif //EMBEDDED
@@ -139,6 +141,12 @@ int main() {
     FILE *images_file = fopen(IMAGES_FILENAME, "rb");
     assert(images_file);
     fread(ch_images, N_IMAGES * IMAGE_SIZE, 1, images_file);
+    for(int i = 0; i < N_IMAGES * IMAGE_SIZE; i++) {
+        printf("%x, ", ch_images[i]);
+        if((i+1)%IMAGE_HEIGHT == 0) {
+            printf("\n\n\n");
+        }
+    }
     fclose(images_file);
 #endif //EMBEDDED
 
@@ -197,6 +205,13 @@ int main() {
 #ifdef PRINT_IMAGE_IN
     print_ppm(image_in, IMAGE_WIDTH, IMAGE_HEIGHT, "input", IMAGE_TO_CONVOLVE);
 #endif //PRINT_IMAGE_IN
+
+    // for(int i = 0; i < OUTPUT_HEIGHT * OUTPUT_WIDTH; i++) {
+    //     printf("%x, ", image_out[i]);
+    //     if((i+1)%IMAGE_HEIGHT == 0) {
+    //         printf("\n\n\n");
+    //     }
+    // }
 
 #ifdef PRINT_IMAGE_OUT
     print_ppm(image_out, OUTPUT_HEIGHT, OUTPUT_WIDTH, "output", IMAGE_TO_CONVOLVE);
