@@ -21,17 +21,17 @@
  * 3: Laplacian of Gaussian
  * 4: Emboss 3x3 filter
  */
-#define KERNEL 2
+#define KERNEL 0
 
 /* ============================ END OF KERNEL CONFIGURATION ============================ */
 
 /* ============================= START OF RUN CONFIGURATION ============================ */
 
 //#define HLS_SIMULATION               /* uncomment to enable HLS simulation */
-//#define EMBEDDED                     /* uncomment to run in Zynq */
-//#define USE_HW_IP                    /* uncomment to accelerate convolution with hardware IP */
-#define PRINT_IMAGE_IN               /* uncomment print input image to file */
-#define PRINT_IMAGE_OUT              /* print output image to file */
+#define EMBEDDED                     /* uncomment to run in Zynq */
+#define USE_HW_IP                    /* uncomment to accelerate convolution with hardware IP */
+//#define PRINT_IMAGE_IN               /* uncomment print input image to file */
+//#define PRINT_IMAGE_OUT              /* print output image to file */
 #define IMAGE_TO_CONVOLVE 1          /* selected input image */
 
 /* ============================== END OF RUN CONFIGURATION ============================= */
@@ -89,7 +89,7 @@ static int bias = 0;
 
 #ifdef EMBEDDED
 
-#include "xtime_l.h"
+#include "xiltimer.h"
 
 // DDR pre-defined data regions
 #define MEM_IMAGES_BASE_ADDRESS 0x10000000

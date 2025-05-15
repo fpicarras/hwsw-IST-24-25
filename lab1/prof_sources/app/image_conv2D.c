@@ -11,7 +11,7 @@
 #include <assert.h>
 #include "image_conv2D.h"
 #ifdef EMBEDDED
-#include "xaxil_conv2D.h"
+#include "xaxil_conv2d.h"
 #endif
 
 static unsigned char *ch_images;    /* images data region */
@@ -100,7 +100,7 @@ void HWSW_conv2D(const unsigned char *matrix_in, unsigned char *matrix_out) {
     XAxil_conv2d_Config *cfg;
 
     // Initialize IP
-    cfg = XAxil_conv2d_LookupConfig(XPAR_MY_IP_0_DEVICE_ID);
+    cfg = XAxil_conv2d_LookupConfig(0x40000000);
     XAxil_conv2d_CfgInitialize(&conv2d, cfg);
     
     while(!XAxil_conv2d_IsReady(&conv2d));
@@ -124,7 +124,7 @@ int check_hw_errors() {
     for (int i = 0; i < (OUTPUT_HEIGHT * OUTPUT_WIDTH * 3); i++)
         if (hw_image_out[i] != image_out[i]) {
             err_cnt++;
-            printf("%d: %d != %d\n\r", i, hw_image_out[i], image_out[i]);
+            // printf("%d: %d != %d\n\r", i, hw_image_out[i], image_out[i]);
         }
 
     return err_cnt;
