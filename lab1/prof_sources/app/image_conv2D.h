@@ -3,7 +3,7 @@
 
 /* =========================== START OF DATASET CONFIGURATION ========================== */
 
-#define IMAGES_FILENAME "/home/joao-pedro/Documents/Tecnico/Y1-P4/HW/Labs/hwsw-IST-24-25/images/images_ppm/image0.bin" /* file where the images are stored */
+#define IMAGES_FILENAME "/home/fpicarras/Desktop/hwsw-IST-24-25/images/images.bin" /* file where the images are stored */
 #define N_IMAGES 1                 /* number of images in the binary file */
 #define IMAGE_HEIGHT 88              /* width of the images */
 #define IMAGE_WIDTH IMAGE_HEIGHT     /* height of the images */

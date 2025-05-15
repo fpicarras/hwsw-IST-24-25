@@ -22,24 +22,24 @@ static unsigned char *hw_image_out; /* output image computed using the hardware 
 void sw_convolution_2D(const unsigned char *matrix_in, unsigned char *matrix_out) {
     for (int i = 0; i < OUTPUT_HEIGHT; i++)
         for (int j = 0; j < OUTPUT_WIDTH; j++) {
-            int accum = bias;                       /* initialize result with bias */
+            int accum = bias;                       // initialize result with bias
 
             for (int k = 0; k < KERNEL_SIZE; k++)
                 for (int x = 0; x < KERNEL_SIZE; x++) {
-                    /* Kernel index */
+                    // Kernel index
                     int kernel_1d_idx =
-                            k * KERNEL_SIZE +       /* kernel row */
-                            x;                      /* kernel column */
+                            k * KERNEL_SIZE +       // kernel row
+                            x;                      // kernel column
 
-                    /* Input matrix index */
+                    // Input matrix index 
                     int input_1d_idx =
-                            (i + k) * IMAGE_WIDTH + /* input row */
-                            j + x;                  /* input column */
+                            (i + k) * IMAGE_WIDTH + // input row
+                            j + x;                  // input column
 
                     accum += kernel[kernel_1d_idx] * matrix_in[input_1d_idx];
                 }
 
-            /* Normalize result */
+            // Normalize result
             if (accum > 255)
                 accum = 255;
             else if (accum < 0)
@@ -67,11 +67,21 @@ void print_ppm(unsigned char *image, int height, int width, const char *prefix, 
     fprintf(image_file, "P6\n%d %d\n255\n", width, height);
 
     /* Write binary RGB pixel data */
-    for (int i = 0; i < height*width*3; i++) {
-        // fputc(image[i], image_file);
-        fprintf(image_file, "%2x ", image[i]);
-        if((i+1)%height == 0) {
-            fprintf(image_file, "\n");
+    for (int i = 0; i < height; i++) {
+         for(int j = 0; j < width; j++) {
+             fputc(IMAGE_R(image, height, width, i, j), image_file);
+             fputc(IMAGE_G(image, height, width, i, j), image_file);
+             fputc(IMAGE_B(image, height, width, i, j), image_file);
+        }
+    }
+    for (int i = 0; i < height; i++) {
+        for(int j = 0; j < width; j++) {
+        //    fputc(IMAGE_G(image, height, width, i, j), image_file);
+        }
+    }
+    for (int i = 0; i < height; i++) {
+        for(int j = 0; j < width; j++) {
+        //    fputc(IMAGE_B(image, height, width, i, j), image_file);
         }
     }
 
