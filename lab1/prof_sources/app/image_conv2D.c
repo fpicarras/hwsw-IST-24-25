@@ -74,16 +74,6 @@ void print_ppm(unsigned char *image, int height, int width, const char *prefix, 
              fputc(IMAGE_B(image, height, width, i, j), image_file);
         }
     }
-    for (int i = 0; i < height; i++) {
-        for(int j = 0; j < width; j++) {
-        //    fputc(IMAGE_G(image, height, width, i, j), image_file);
-        }
-    }
-    for (int i = 0; i < height; i++) {
-        for(int j = 0; j < width; j++) {
-        //    fputc(IMAGE_B(image, height, width, i, j), image_file);
-        }
-    }
 
     fprintf(image_file, "\n");
 
