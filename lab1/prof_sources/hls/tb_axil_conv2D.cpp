@@ -69,38 +69,48 @@ int main() {
     hls::stream<strmio_t> str_in;
     hls::stream<strmio_t> str_out;
     strmio_t tmp_in, tmp_out;
-    for (int i = 0; i < IMAGE_HEIGHT*IMAGE_WIDTH; i++) {
-        tmp_in.data = (input_image_t)image_in[i];
+    weight_t weights [KERNEL_PADDED];
+    stream_t *image_in_str = (stream_t*)image_in;
+    stream_t *weights_str = (stream_t*)weights;
+    for(int i = 0; i < KERNEL_PADDED; i++) {
+        if(i < KERNEL_SIZE * KERNEL_SIZE) {
+            weights[i] = kernel[i];
+        } else {
+            weights[i] = 0;
+        }
+    }
+    for (int i = 0; i < IMAGE_HEIGHT * IMAGE_WIDTH/4; i++) {
+        tmp_in.data = image_in_str[i];
         tmp_in.last = (ap_int<1>)0;
         str_in.write(tmp_in);
     }
-    for (int i = 0; i < KERNEL_SIZE*KERNEL_SIZE; i++) {
-        tmp_in.data = (weight_t)kernel[i];
+    for (int i = 0; i < KERNEL_PADDED/4; i++) {
+        tmp_in.data = weights_str[i];
         tmp_in.last = (ap_int<1>)0;
         str_in.write(tmp_in);
     }
-    for (int i = 0; i < 32/WEIGHT_BIT_WIDTH; i++) {
-        tmp_in.data = (weight_t)(bias & 0xFF);
-        bias >>= WEIGHT_BIT_WIDTH;
-        tmp_in.last = (ap_int<1>)(i == (32/WEIGHT_BIT_WIDTH) - 1);
-        str_in.write(tmp_in);
-    }
+    tmp_in.data = bias;
+    tmp_in.last = 1;
+    str_in.write(tmp_in);
     axil_conv2D(str_in, str_out);
-    for (int i = 0; i < OUTPUT_HEIGHT*OUTPUT_WIDTH; i++) {
+    for (int i = 0; i < OUTPUT_HEIGHT*OUTPUT_WIDTH; i+=4) {
         tmp_out = str_out.read();
-        hw_image_out[i] = (input_image_t)tmp_out.data;
+        hw_image_out[i] = tmp_out.data & 0xFF;
+        hw_image_out[i + 1] = (tmp_out.data & 0xFF00) >> 8;
+        hw_image_out[i + 2] = (tmp_out.data & 0xFF0000) >> 16;
+        hw_image_out[i + 3] = (tmp_out.data & 0xFF000000) >> 24;
     }
 #endif
 
     sw_convolution_2D(image_in, sw_image_out);
 
-    printf("Output Image\n\r");
-    for (int i = 0; i < OUTPUT_HEIGHT; i++) {
-        for (int j = 0; j < OUTPUT_WIDTH; j++) {
-            printf("%4d ", sw_image_out[i * OUTPUT_WIDTH + j]);
-        }
-        printf("\n\r");
-    }
+    // printf("Output Image\n\r");
+    // for (int i = 0; i < OUTPUT_HEIGHT; i++) {
+    //     for (int j = 0; j < OUTPUT_WIDTH; j++) {
+    //         printf("%4d ", sw_image_out[i * OUTPUT_WIDTH + j]);
+    //     }
+    //     printf("\n\r");
+    // }
 
 #ifdef HW_IP
     int err_cnt = 0;
@@ -108,8 +118,8 @@ int main() {
         for (int j = 0; j < OUTPUT_WIDTH; j++)
             if (hw_image_out[i * OUTPUT_WIDTH + j] != sw_image_out[i * OUTPUT_WIDTH + j]) {
                 err_cnt++;
-                printf("%d,%d: %d != %d\n\r",
-                       i, j, hw_image_out[i * OUTPUT_WIDTH + j], sw_image_out[i * OUTPUT_WIDTH + j]);
+                // printf("%d,%d: %d != %d\n\r",
+                //        i, j, hw_image_out[i * OUTPUT_WIDTH + j], sw_image_out[i * OUTPUT_WIDTH + j]);
             }
 
     return err_cnt;

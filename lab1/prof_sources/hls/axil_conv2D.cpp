@@ -16,21 +16,24 @@ void axil_conv2D(hls::stream<strmio_t> &strm_in,
 #pragma HLS interface axis port=strm_in
 #pragma HLS INTERFACE axis port=strm_out
 
-static input_image_t image_in[IMAGE_HEIGHT * IMAGE_WIDTH];
-static weight_t weights[KERNEL_SIZE * KERNEL_SIZE];
-static bias_t bias;
+    static input_image_t image_in[IMAGE_HEIGHT * IMAGE_WIDTH];
+    static weight_t weights[KERNEL_PADDED];
+    static output_image_t image_out_buff[STREAM_BIT_WIDTH/IMAGE_BIT_WIDTH];
+    static bias_t bias;
+
+    stream_t *image_in_str = (stream_t*)image_in;
+    stream_t *weights_str = (stream_t*)weights;
+    stream_t *image_out_buff_str = (stream_t*)image_out_buff;
 
     strmio_t tmp_in;
     loop_init: for(count_t i = 0; ; i ++) {
         tmp_in = strm_in.read();
-        if(i < IMAGE_HEIGHT * IMAGE_WIDTH) {
-            image_in[i] = tmp_in.data;
-        } else if (i < IMAGE_HEIGHT * IMAGE_WIDTH + KERNEL_SIZE * KERNEL_SIZE) {
-            weights[i - IMAGE_HEIGHT * IMAGE_WIDTH] = tmp_in.data;
-        } else if (i == IMAGE_HEIGHT * IMAGE_WIDTH + KERNEL_SIZE * KERNEL_SIZE) {
-            bias = tmp_in.data;
+        if(i < IMAGE_HEIGHT * IMAGE_WIDTH/4) {
+            image_in_str[i] = tmp_in.data;
+        } else if (i < (IMAGE_HEIGHT * IMAGE_WIDTH + KERNEL_PADDED)/4) {
+            weights_str[i - (IMAGE_HEIGHT * IMAGE_WIDTH/4)] = tmp_in.data;
         } else {
-            bias = bias << 8 + tmp_in.data;
+            bias = tmp_in.data;
         }
         if(tmp_in.last == 1) {
             break;
@@ -66,11 +69,16 @@ static bias_t bias;
             else
                 acc_sat = acc;
 
-            tmp_out.last = ((i == OUTPUT_HEIGHT - 1) && (j == OUTPUT_WIDTH - 1));
-            tmp_out.data = (output_image_t)acc_sat;
-            tmp_out.keep = 0xF;
-            tmp_out.strb = 0xF;
-            strm_out.write(tmp_out);
+            count_t image_out_idx = (i * OUTPUT_WIDTH + j) & 0x3;
+            image_out_buff[image_out_idx] = acc_sat;
+
+            if(image_out_idx == 0x3) {
+                tmp_out.last = ((i == OUTPUT_HEIGHT - 1) && (j == OUTPUT_WIDTH - 1));
+                tmp_out.data = image_out_buff_str[0];
+                tmp_out.keep = 0xF;
+                tmp_out.strb = 0xF;
+                strm_out.write(tmp_out);
+            }
         }
     }
 }
