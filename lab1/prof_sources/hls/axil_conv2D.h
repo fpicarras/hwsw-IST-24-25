@@ -3,7 +3,7 @@
 
 #include <ap_int.h>
 
-#define IMAGE_HEIGHT 6
+#define IMAGE_HEIGHT 88
 #define IMAGE_WIDTH  IMAGE_HEIGHT
 #define KERNEL_SIZE 3
 #define OUTPUT_HEIGHT (IMAGE_HEIGHT - KERNEL_SIZE + 1)
