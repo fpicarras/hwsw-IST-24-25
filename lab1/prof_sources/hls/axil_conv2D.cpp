@@ -9,17 +9,35 @@
 
 #include "axil_conv2D.h"
 
-void axil_conv2D(input_image_t image_in[IMAGE_HEIGHT * IMAGE_WIDTH],
-                 output_image_t image_out[OUTPUT_HEIGHT * OUTPUT_WIDTH],
-                 weight_t weights[KERNEL_SIZE * KERNEL_SIZE],
-                 bias_t bias) {
+void axil_conv2D(hls::stream<strmio_t> &strm_in,
+                 hls::stream<strmio_t> &strm_out) {
 
-#pragma HLS INTERFACE s_axilite port=return bundle=BUS1
-#pragma HLS INTERFACE s_axilite port=image_in bundle=BUS1
-#pragma HLS INTERFACE s_axilite port=image_out bundle=BUS1
-#pragma HLS INTERFACE s_axilite port=weights bundle=BUS1
-#pragma HLS INTERFACE s_axilite port=bias bundle=BUS1
+#pragma HLS INTERFACE ap_ctrl_none port=return
+#pragma HLS interface axis port=strm_in
+#pragma HLS INTERFACE axis port=strm_out
 
+static input_image_t image_in[IMAGE_HEIGHT * IMAGE_WIDTH];
+static weight_t weights[KERNEL_SIZE * KERNEL_SIZE];
+static bias_t bias;
+
+    strmio_t tmp_in;
+    loop_init: for(count_t i = 0; ; i ++) {
+        tmp_in = strm_in.read();
+        if(i < IMAGE_HEIGHT * IMAGE_WIDTH) {
+            image_in[i] = tmp_in.data;
+        } else if (i < IMAGE_HEIGHT * IMAGE_WIDTH + KERNEL_SIZE * KERNEL_SIZE) {
+            weights[i - IMAGE_HEIGHT * IMAGE_WIDTH] = tmp_in.data;
+        } else if (i == IMAGE_HEIGHT * IMAGE_WIDTH + KERNEL_SIZE * KERNEL_SIZE) {
+            bias = tmp_in.data;
+        } else {
+            bias = bias << 8 + tmp_in.data;
+        }
+        if(tmp_in.last == 1) {
+            break;
+        }
+    }
+
+    strmio_t tmp_out;
     loop_i:
     for (count_t i = 0; i < OUTPUT_HEIGHT; i++) {
         loop_j:
@@ -48,7 +66,11 @@ void axil_conv2D(input_image_t image_in[IMAGE_HEIGHT * IMAGE_WIDTH],
             else
                 acc_sat = acc;
 
-            image_out[i * OUTPUT_WIDTH + j] = acc_sat;
+            tmp_out.last = ((i == OUTPUT_HEIGHT - 1) && (j == OUTPUT_WIDTH - 1));
+            tmp_out.data = (output_image_t)acc_sat;
+            tmp_out.keep = 0xF;
+            tmp_out.strb = 0xF;
+            strm_out.write(tmp_out);
         }
     }
 }

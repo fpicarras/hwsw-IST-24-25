@@ -66,10 +66,30 @@ int main() {
     }
 
 #ifdef HW_IP
-    axil_conv2D((input_image_t *) image_in,
-                (output_image_t *) hw_image_out,
-                (weight_t *) kernel,
-                (bias_t) bias);
+    hls::stream<strmio_t> str_in;
+    hls::stream<strmio_t> str_out;
+    strmio_t tmp_in, tmp_out;
+    for (int i = 0; i < IMAGE_HEIGHT*IMAGE_WIDTH; i++) {
+        tmp_in.data = (input_image_t)image_in[i];
+        tmp_in.last = (ap_int<1>)0;
+        str_in.write(tmp_in);
+    }
+    for (int i = 0; i < KERNEL_SIZE*KERNEL_SIZE; i++) {
+        tmp_in.data = (weight_t)kernel[i];
+        tmp_in.last = (ap_int<1>)0;
+        str_in.write(tmp_in);
+    }
+    for (int i = 0; i < 32/WEIGHT_BIT_WIDTH; i++) {
+        tmp_in.data = (weight_t)(bias & 0xFF);
+        bias >>= WEIGHT_BIT_WIDTH;
+        tmp_in.last = (ap_int<1>)(i == (32/WEIGHT_BIT_WIDTH) - 1);
+        str_in.write(tmp_in);
+    }
+    axil_conv2D(str_in, str_out);
+    for (int i = 0; i < OUTPUT_HEIGHT*OUTPUT_WIDTH; i++) {
+        tmp_out = str_out.read();
+        hw_image_out[i] = (input_image_t)tmp_out.data;
+    }
 #endif
 
     sw_convolution_2D(image_in, sw_image_out);

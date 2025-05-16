@@ -2,6 +2,8 @@
 #define __AXIL_CONV2D_H__
 
 #include <ap_int.h>
+#include <hls_stream.h>
+#include "ap_axi_sdata.h"
 
 #define IMAGE_HEIGHT 88
 #define IMAGE_WIDTH  IMAGE_HEIGHT
@@ -19,6 +21,7 @@ typedef ap_uint<IMAGE_BIT_WIDTH> output_image_t;
 typedef ap_int<32> bias_t;
 typedef ap_uint<14> count_t;
 typedef ap_int<21> accum_t; /* IMAGE_BIT_WIDTH + WEIGHT_BIT_WIDTH + 5 */
+typedef hls::axis<ap_int<8>, 0, 0, 0> strmio_t;
 
 /**
  * Implements a simple IP that performs the convolution of two matrices.
@@ -27,9 +30,7 @@ typedef ap_int<21> accum_t; /* IMAGE_BIT_WIDTH + WEIGHT_BIT_WIDTH + 5 */
  * @param weights
  * @param bias
  */
-void axil_conv2D(input_image_t image_in[IMAGE_HEIGHT * IMAGE_WIDTH],
-                 output_image_t image_out[OUTPUT_HEIGHT * OUTPUT_WIDTH],
-                 weight_t weights[KERNEL_SIZE * KERNEL_SIZE],
-                 bias_t bias);
+void axil_conv2D(hls::stream<strmio_t> &strm_in,
+                 hls::stream<strmio_t> &strm_out);
 
 #endif //__AXIL_CONV2D_H__
