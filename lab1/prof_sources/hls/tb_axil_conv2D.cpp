@@ -95,22 +95,30 @@ int main() {
     axil_conv2D(str_in, str_out);
     for (int i = 0; i < OUTPUT_HEIGHT*OUTPUT_WIDTH; i+=4) {
         tmp_out = str_out.read();
-        hw_image_out[i] = tmp_out.data & 0xFF;
-        hw_image_out[i + 1] = (tmp_out.data & 0xFF00) >> 8;
-        hw_image_out[i + 2] = (tmp_out.data & 0xFF0000) >> 16;
-        hw_image_out[i + 3] = (tmp_out.data & 0xFF000000) >> 24;
+        hw_image_out[i] = tmp_out.data.range(7, 0);
+        hw_image_out[i + 1] = tmp_out.data.range(15, 8);
+        hw_image_out[i + 2] = tmp_out.data.range(23, 16);
+        hw_image_out[i + 3] = tmp_out.data.range(31, 24);
     }
 #endif
 
     sw_convolution_2D(image_in, sw_image_out);
 
-    // printf("Output Image\n\r");
-    // for (int i = 0; i < OUTPUT_HEIGHT; i++) {
-    //     for (int j = 0; j < OUTPUT_WIDTH; j++) {
-    //         printf("%4d ", sw_image_out[i * OUTPUT_WIDTH + j]);
-    //     }
-    //     printf("\n\r");
-    // }
+    printf("Output Image SW\n\r");
+    for (int i = 0; i < OUTPUT_HEIGHT; i++) {
+        for (int j = 0; j < OUTPUT_WIDTH; j++) {
+            printf("%4d ", sw_image_out[i * OUTPUT_WIDTH + j]);
+        }
+        printf("\n\r");
+    }
+
+    printf("Output Image HW\n\r");
+    for (int i = 0; i < OUTPUT_HEIGHT; i++) {
+        for (int j = 0; j < OUTPUT_WIDTH; j++) {
+            printf("%4d ", hw_image_out[i * OUTPUT_WIDTH + j]);
+        }
+        printf("\n\r");
+    }
 
 #ifdef HW_IP
     int err_cnt = 0;

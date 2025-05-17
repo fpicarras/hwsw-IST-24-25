@@ -21,17 +21,20 @@ void axil_conv2D(hls::stream<strmio_t> &strm_in,
     static output_image_t image_out_buff[STREAM_BIT_WIDTH/IMAGE_BIT_WIDTH];
     static bias_t bias;
 
-    stream_t *image_in_str = (stream_t*)image_in;
-    stream_t *weights_str = (stream_t*)weights;
-    stream_t *image_out_buff_str = (stream_t*)image_out_buff;
-
     strmio_t tmp_in;
-    loop_init: for(count_t i = 0; ; i ++) {
+    loop_init: for(int i = 0; ; i += 4) {
         tmp_in = strm_in.read();
-        if(i < IMAGE_HEIGHT * IMAGE_WIDTH/4) {
-            image_in_str[i] = tmp_in.data;
-        } else if (i < (IMAGE_HEIGHT * IMAGE_WIDTH + KERNEL_PADDED)/4) {
-            weights_str[i - (IMAGE_HEIGHT * IMAGE_WIDTH/4)] = tmp_in.data;
+        if(i < IMAGE_HEIGHT * IMAGE_WIDTH) {
+            image_in[i] = tmp_in.data.range(7, 0);
+            image_in[i + 1] = tmp_in.data.range(15, 8);
+            image_in[i + 2] = tmp_in.data.range(23, 16);
+            image_in[i + 3] = tmp_in.data.range(31, 24);
+        } else if (i < IMAGE_HEIGHT * IMAGE_WIDTH + KERNEL_PADDED) {
+            int i2 = i - IMAGE_HEIGHT * IMAGE_WIDTH;
+            weights[i2] = tmp_in.data.range(7, 0);
+            weights[i2 + 1] = tmp_in.data.range(15, 8);
+            weights[i2 + 2] = tmp_in.data.range(23, 16);
+            weights[i2 + 3] = tmp_in.data.range(31, 24);
         } else {
             bias = tmp_in.data;
         }
@@ -42,21 +45,21 @@ void axil_conv2D(hls::stream<strmio_t> &strm_in,
 
     strmio_t tmp_out;
     loop_i:
-    for (count_t i = 0; i < OUTPUT_HEIGHT; i++) {
+    for (int i = 0; i < OUTPUT_HEIGHT; i++) {
         loop_j:
-        for (count_t j = 0; j < OUTPUT_WIDTH; j++) {
+        for (int j = 0; j < OUTPUT_WIDTH; j++) {
             accum_t acc = (accum_t) bias;
             output_image_t acc_sat;
 
             loop_k:
-            for (count_t k = 0; k < KERNEL_SIZE; k++) {
+            for (int k = 0; k < KERNEL_SIZE; k++) {
 #pragma HLS PIPELINE
             	// Indices are initialized here to highlight
             	// the incremental counting in the inner loop
-            	count_t kernel_1d_idx = k * KERNEL_SIZE ; /* start of kernel row */
-            	count_t image_1d_idx = (i + k) * IMAGE_WIDTH + j ; /* start of input row */
+            	int kernel_1d_idx = k * KERNEL_SIZE ; /* start of kernel row */
+            	int image_1d_idx = (i + k) * IMAGE_WIDTH + j ; /* start of input row */
                 loop_x:
-                for (count_t x = 0; x < KERNEL_SIZE; x++, kernel_1d_idx++, image_1d_idx++) {
+                for (int x = 0; x < KERNEL_SIZE; x++, kernel_1d_idx++, image_1d_idx++) {
                     acc += weights[kernel_1d_idx] * image_in[image_1d_idx];
                 }
             }
@@ -69,12 +72,13 @@ void axil_conv2D(hls::stream<strmio_t> &strm_in,
             else
                 acc_sat = acc;
 
-            count_t image_out_idx = (i * OUTPUT_WIDTH + j) & 0x3;
-            image_out_buff[image_out_idx] = acc_sat;
+            tmp_out.data.range(7, 0) = tmp_out.data.range(15, 8);
+            tmp_out.data.range(15, 8) = tmp_out.data.range(23, 16);
+            tmp_out.data.range(23, 16) = tmp_out.data.range(31, 24);
+            tmp_out.data.range(31, 24) = acc_sat;
 
-            if(image_out_idx == 0x3) {
+            if(((i * OUTPUT_WIDTH + j) & 0x3) == 0x3) {
                 tmp_out.last = ((i == OUTPUT_HEIGHT - 1) && (j == OUTPUT_WIDTH - 1));
-                tmp_out.data = image_out_buff_str[0];
                 tmp_out.keep = 0xF;
                 tmp_out.strb = 0xF;
                 strm_out.write(tmp_out);
