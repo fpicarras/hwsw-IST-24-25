@@ -56,8 +56,9 @@ void sw_convolution_2D(const unsigned char *matrix_in, unsigned char *matrix_out
 }
 
 void hw_convolution_2D(const unsigned char *matrix_in, unsigned char *matrix_out) {
-    int tmp_hw_image_in[IMAGE_WIDTH*IMAGE_HEIGHT];
-    int tmp_hw_image_out[OUTPUT_WIDTH*OUTPUT_HEIGHT];
+    hls::stream<strmio_t> str_in;
+    hls::stream<strmio_t> str_out;
+    strmio_t tmp_in, tmp_out;
 
     /*
     * The shift determines the channels to test:
@@ -67,14 +68,15 @@ void hw_convolution_2D(const unsigned char *matrix_in, unsigned char *matrix_out
     * 24 -> None, output is always 0
     */
     for(int i = 0; i < IMAGE_WIDTH*IMAGE_HEIGHT; i++){
-        tmp_hw_image_in[i] = ((int) matrix_in[i]) << 8;
+        tmp_in.data = ((int) matrix_in[i]) << 8;
+        tmp_in.last = (ap_int<1>)(i == (IMAGE_WIDTH*IMAGE_HEIGHT - 1));
+        str_in.write(tmp_in);
     }
-    axil_conv2D((input_image_t*) tmp_hw_image_in,
-                (output_image_t*) tmp_hw_image_out,
+    axil_conv2D(str_in, str_out,
                 (weight_t*) kernel, (bias_t) bias);
 
     for(int i = 0; i < OUTPUT_WIDTH*OUTPUT_HEIGHT; i++){
-        matrix_out[i] = (unsigned char) (tmp_hw_image_out[i] >> 8);
+        matrix_out[i] = (unsigned char) (str_out.read().data >> 8);
     }
 
 }
@@ -84,7 +86,7 @@ int main() {
     for (int i = 0; i < IMAGE_HEIGHT; i++) {
         for (int j = 0; j < IMAGE_WIDTH; j++) {
             image_in[i * IMAGE_WIDTH + j] = (i + 1) * 10 + (j + 1);
-            printf("%d ", image_in[i * IMAGE_WIDTH + j]);
+            // printf("%d ", image_in[i * IMAGE_WIDTH + j]);
         }
         printf("\n\r");
     }

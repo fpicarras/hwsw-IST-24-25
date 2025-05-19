@@ -12,6 +12,7 @@
 #include "image_conv2D_3ch_1ip.h"
 #ifdef EMBEDDED
 #include "xaxil_conv2d.h"
+#include "xaxidma.h"
 #endif
 
 static unsigned char *ch_images;    /* images data region */
@@ -99,7 +100,6 @@ void HWSW_conv2D(const unsigned char *matrix_in, unsigned char *matrix_out) {
      * ===================================================================================== */    
     // Initialize temporary memmory
     unsigned int *tmp_in = (unsigned int *) MEM_INPUT_TMP_ADDRESS;
-    unsigned int *tmp_out = (unsigned int *) MEM_OUTPUT_TMP_ADDRESS;
     unsigned int tmp;
 
     for(int i = 0; i < IMAGE_HEIGHT; i++){
@@ -110,22 +110,31 @@ void HWSW_conv2D(const unsigned char *matrix_in, unsigned char *matrix_out) {
             tmp_in[i*IMAGE_WIDTH+j] = tmp;
         }
     }
-    
+
+    // Initialize DMA
+    XAxiDma dma;
+    XAxiDma_Config *cfg_dma;
+    cfg_dma = XAxiDma_LookupConfig(0x41E00000);
+    XAxiDma_CfgInitialize(&dma, cfg_dma);
+
+    XAxiDma_IntrDisable(&dma, XAXIDMA_IRQ_ALL_MASK, XAXIDMA_DEVICE_TO_DMA);
+    XAxiDma_IntrDisable(&dma, XAXIDMA_IRQ_ALL_MASK, XAXIDMA_DMA_TO_DEVICE);
+
     // Initialize IP
     XAxil_conv2d conv2d_0;
     XAxil_conv2d_Config *cfg_0;
     cfg_0 = XAxil_conv2d_LookupConfig(0x40000000);
     XAxil_conv2d_CfgInitialize(&conv2d_0, cfg_0);
-    
+
     // Set Inputs on all channels
-    while(!XAxil_conv2d_IsReady(&conv2d_0));    
-    XAxil_conv2d_Write_image_in_Words(&conv2d_0, 0, tmp_in, IMAGE_HEIGHT * IMAGE_WIDTH);
+    while(!XAxil_conv2d_IsReady(&conv2d_0));
+    XAxiDma_SimpleTransfer(&dma, (UINTPTR) tmp_in, 4*IMAGE_HEIGHT*IMAGE_WIDTH, XAXIDMA_DMA_TO_DEVICE);
     XAxil_conv2d_Write_weights_Bytes(&conv2d_0, 0, kernel, KERNEL_SIZE * KERNEL_SIZE);
     XAxil_conv2d_Set_bias(&conv2d_0, bias);
     XAxil_conv2d_Start(&conv2d_0);
 
-    while(!XAxil_conv2d_IsDone(&conv2d_0));
-    XAxil_conv2d_Read_image_out_Bytes(&conv2d_0, 0, tmp_in, 4*OUTPUT_HEIGHT*OUTPUT_WIDTH);
+    XAxiDma_SimpleTransfer(&dma, (UINTPTR) tmp_in, 4*OUTPUT_HEIGHT*OUTPUT_WIDTH, XAXIDMA_DEVICE_TO_DMA);
+    while (XAxiDma_Busy(&dma,XAXIDMA_DEVICE_TO_DMA));
 
     for(int i = 0; i < OUTPUT_HEIGHT; i++){
         for(int j = 0; j < OUTPUT_WIDTH; j++){

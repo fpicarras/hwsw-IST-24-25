@@ -9,16 +9,27 @@
 
 #include "axil_conv2D.h"
 
-void axil_conv2D(input_image_t image_in[IMAGE_HEIGHT * IMAGE_WIDTH],
-                 output_image_t image_out[OUTPUT_HEIGHT * OUTPUT_WIDTH],
+void axil_conv2D(hls::stream<strmio_t> &strm_in,
+                 hls::stream<strmio_t> &strm_out,
                  weight_t weights[KERNEL_SIZE * KERNEL_SIZE],
                  bias_t bias) {
 
 #pragma HLS INTERFACE s_axilite port=return bundle=BUS1
-#pragma HLS INTERFACE s_axilite port=image_in bundle=BUS1
-#pragma HLS INTERFACE s_axilite port=image_out bundle=BUS1
+#pragma HLS INTERFACE axis port=strm_in
+#pragma HLS INTERFACE axis port=strm_out
 #pragma HLS INTERFACE s_axilite port=weights bundle=BUS1
 #pragma HLS INTERFACE s_axilite port=bias bundle=BUS1
+
+    static input_image_t image_in[IMAGE_HEIGHT * IMAGE_WIDTH];
+
+    strmio_t chunk_in;
+    loop_init: for(int i = 0; ; i ++) {
+        chunk_in = strm_in.read();
+        image_in[i] = chunk_in.data;
+        if(chunk_in.last == 1) {
+            break;
+        }
+    }
 
     loop_i:
     for (count_t i = 0; i < OUTPUT_HEIGHT; i++) {
@@ -82,7 +93,12 @@ void axil_conv2D(input_image_t image_in[IMAGE_HEIGHT * IMAGE_WIDTH],
             tmp_out(23,16) = acc_sat_b(7,0);
             tmp_out(31,24) = 0;
 
-            image_out[i * OUTPUT_WIDTH + j] = tmp_out;
+            strmio_t chunk_out;
+            chunk_out.last = ((i == OUTPUT_HEIGHT - 1) && (j == OUTPUT_WIDTH - 1));
+            chunk_out.data = tmp_out;
+            chunk_out.keep = 0xF;
+            chunk_out.strb = 0xF;
+            strm_out.write(chunk_out);
         }
     }
 }

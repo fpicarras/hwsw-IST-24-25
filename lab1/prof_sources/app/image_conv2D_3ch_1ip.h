@@ -86,6 +86,7 @@ static int bias = 0;
 #define IMAGE_B(IMG, HEIGHT, WIDTH, I, J) ((IMG)[2 * (WIDTH) * (HEIGHT) + (I) * (WIDTH) + (J)])
 
 #define STRING_LENGTH 100
+#define DATA_WIDTH 32
 
 #ifdef EMBEDDED
 
@@ -97,7 +98,6 @@ static int bias = 0;
 #define MEM_OUTPUT_BASE_ADDRESS 0x12000000
 
 #define MEM_INPUT_TMP_ADDRESS 0x13000000
-#define MEM_OUTPUT_TMP_ADDRESS 0x14000000
 #else
 static unsigned char memory_images[N_IMAGES * IMAGE_SIZE];
 static unsigned char memory_data[OUTPUT_SIZE];
