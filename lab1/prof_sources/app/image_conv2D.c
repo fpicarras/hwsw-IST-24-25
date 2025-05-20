@@ -9,7 +9,7 @@
 
 #include <stdio.h>
 #include <assert.h>
-#include "image_conv2D_3ch_1ip.h"
+#include "image_conv2D.h"
 #ifdef EMBEDDED
 #include "xaxil_conv2d.h"
 #endif
