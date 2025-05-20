@@ -96,8 +96,7 @@ static int bias = 0;
 #define MEM_DATA_BASE_ADDRESS 0x11000000
 #define MEM_OUTPUT_BASE_ADDRESS 0x12000000
 
-#define MEM_INPUT_TMP_ADDRESS 0x13000000
-#define MEM_OUTPUT_TMP_ADDRESS 0x14000000
+#define MEM_TMP_ADDRESS 0x13000000
 #else
 static unsigned char memory_images[N_IMAGES * IMAGE_SIZE];
 static unsigned char memory_data[OUTPUT_SIZE];

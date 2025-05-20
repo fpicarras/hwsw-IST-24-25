@@ -98,8 +98,7 @@ void HWSW_conv2D(const unsigned char *matrix_in, unsigned char *matrix_out) {
      * ========== DEVELOP THE ROUTINE TO CONTROL DE HARDWARE IP BELOW THIS LINE! ===========
      * ===================================================================================== */    
     // Initialize temporary memmory
-    unsigned int *tmp_in = (unsigned int *) MEM_INPUT_TMP_ADDRESS;
-    unsigned int *tmp_out = (unsigned int *) MEM_OUTPUT_TMP_ADDRESS;
+    unsigned int *mem_tmp = (unsigned int *) MEM_TMP_ADDRESS;
     unsigned int tmp;
 
     for(int i = 0; i < IMAGE_HEIGHT; i++){
@@ -107,7 +106,7 @@ void HWSW_conv2D(const unsigned char *matrix_in, unsigned char *matrix_out) {
             tmp = (unsigned int) IMAGE_R(matrix_in, IMAGE_HEIGHT, IMAGE_WIDTH, i, j);
             tmp += ((unsigned int) IMAGE_G(matrix_in, IMAGE_HEIGHT, IMAGE_WIDTH, i, j)) << 8;
             tmp += ((unsigned int) IMAGE_B(matrix_in, IMAGE_HEIGHT, IMAGE_WIDTH, i, j)) << 16;
-            tmp_in[i*IMAGE_WIDTH+j] = tmp;
+            mem_tmp[i*IMAGE_WIDTH+j] = tmp;
         }
     }
     
@@ -119,17 +118,17 @@ void HWSW_conv2D(const unsigned char *matrix_in, unsigned char *matrix_out) {
     
     // Set Inputs on all channels
     while(!XAxil_conv2d_IsReady(&conv2d_0));    
-    XAxil_conv2d_Write_image_in_Words(&conv2d_0, 0, tmp_in, IMAGE_HEIGHT * IMAGE_WIDTH);
+    XAxil_conv2d_Write_image_in_Words(&conv2d_0, 0, mem_tmp, IMAGE_HEIGHT * IMAGE_WIDTH);
     XAxil_conv2d_Write_weights_Bytes(&conv2d_0, 0, kernel, KERNEL_SIZE * KERNEL_SIZE);
     XAxil_conv2d_Set_bias(&conv2d_0, bias);
     XAxil_conv2d_Start(&conv2d_0);
 
     while(!XAxil_conv2d_IsDone(&conv2d_0));
-    XAxil_conv2d_Read_image_out_Bytes(&conv2d_0, 0, tmp_in, 4*OUTPUT_HEIGHT*OUTPUT_WIDTH);
+    XAxil_conv2d_Read_image_out_Words(&conv2d_0, 0, mem_tmp, OUTPUT_HEIGHT*OUTPUT_WIDTH);
 
     for(int i = 0; i < OUTPUT_HEIGHT; i++){
         for(int j = 0; j < OUTPUT_WIDTH; j++){
-            tmp = tmp_in[i*OUTPUT_WIDTH + j];
+            tmp = mem_tmp[i*OUTPUT_WIDTH + j];
             IMAGE_R(matrix_out, OUTPUT_HEIGHT, OUTPUT_WIDTH, i, j) = (unsigned char)tmp;
             IMAGE_G(matrix_out, OUTPUT_HEIGHT, OUTPUT_WIDTH, i, j) = (unsigned char)(tmp >> 8);
             IMAGE_B(matrix_out, OUTPUT_HEIGHT, OUTPUT_WIDTH, i, j) = (unsigned char)(tmp >> 16);
