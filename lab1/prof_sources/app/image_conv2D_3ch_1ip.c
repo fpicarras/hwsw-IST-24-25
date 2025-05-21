@@ -101,6 +101,8 @@ void HWSW_conv2D(const unsigned char *matrix_in, unsigned char *matrix_out) {
     // Initialize temporary memmory
     unsigned int *tmp_in = (unsigned int *) MEM_INPUT_TMP_ADDRESS;
     unsigned int tmp;
+    XTime tStart, tEnd;
+    XTime_GetTime(&tStart);
 
     for(int i = 0; i < IMAGE_HEIGHT; i++){
         for(int j = 0; j < IMAGE_WIDTH; j++){
@@ -110,6 +112,13 @@ void HWSW_conv2D(const unsigned char *matrix_in, unsigned char *matrix_out) {
             tmp_in[i*IMAGE_WIDTH+j] = tmp;
         }
     }
+
+    XTime_GetTime(&tEnd);
+    XTime tHW = tEnd - tStart;
+
+    printf("# Interleaved Initial Execution: %.2f ms.\n\r", (float) tHW * 1000 / (COUNTS_PER_SECOND));
+
+    Xil_DCacheFlushRange(tmp_in, 4*IMAGE_HEIGHT*IMAGE_WIDTH);
 
     // Initialize DMA
     XAxiDma dma;
@@ -134,7 +143,19 @@ void HWSW_conv2D(const unsigned char *matrix_in, unsigned char *matrix_out) {
     XAxil_conv2d_Start(&conv2d_0);
 
     XAxiDma_SimpleTransfer(&dma, (UINTPTR) tmp_in, 4*OUTPUT_HEIGHT*OUTPUT_WIDTH, XAXIDMA_DEVICE_TO_DMA);
+
+    XTime_GetTime(&tStart);
+
     while (XAxiDma_Busy(&dma,XAXIDMA_DEVICE_TO_DMA));
+
+    XTime_GetTime(&tEnd);
+    tHW = tEnd - tStart;
+
+    printf("# Busy Execution: %.2f ms.\n\r", (float) tHW * 1000 / (COUNTS_PER_SECOND));
+
+    Xil_DCacheInvalidateRange(tmp_in, 4*IMAGE_HEIGHT*IMAGE_WIDTH);
+
+    XTime_GetTime(&tStart);
 
     for(int i = 0; i < OUTPUT_HEIGHT; i++){
         for(int j = 0; j < OUTPUT_WIDTH; j++){
@@ -144,6 +165,11 @@ void HWSW_conv2D(const unsigned char *matrix_in, unsigned char *matrix_out) {
             IMAGE_B(matrix_out, OUTPUT_HEIGHT, OUTPUT_WIDTH, i, j) = (unsigned char)(tmp >> 16);
         }
     }
+
+    XTime_GetTime(&tEnd);
+    tHW = tEnd - tStart;
+
+    printf("# Interleaved Final Execution: %.2f ms.\n\r", (float) tHW * 1000 / (COUNTS_PER_SECOND));
 
 #endif //HLS_SIMULATION/USE_HW_IP
 }
