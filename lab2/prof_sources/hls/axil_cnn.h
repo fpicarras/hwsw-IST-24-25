@@ -1,0 +1,38 @@
+
+#ifndef __AXIL_CNN_H__
+#define __AXIL_CNN_H__
+
+#include <hls_stream.h>
+
+/* ========================== START OF TEST SET CONFIGURATION ========================== */
+
+#define N_IMAGES 200                 /* number of images in the binary file */
+#define IMAGE_HEIGHT 88              /* width of the images */
+#define IMAGE_WIDTH IMAGE_HEIGHT     /* height of the images */
+#define IMAGE_CHANNELS 3             /* number of channels (red + green + blue) */
+#define N_CLASSES 10                 /* number of possible classes */
+
+/* =========================== END OF TEST SET CONFIGURATION =========================== */
+
+/* ============================ START OF MODEL CONFIGURATION =========================== */
+#define CONV_KERNEL_SIZE 3               /* size of the convolution kernel */
+#define CONV_OFM_NUMBER 16               /* number of OFMs of convolutional layer */
+#define POOL_KERNEL_SIZE 2               /* size of pooling kernel */
+#define POOL_STRIDE 2                    /* stride of pooling operation */
+/* ============================== END OF RUN CONFIGURATION ============================= */
+
+/* =====================================================================================
+ * ================ PARAMETERS AUTOMATICALLY GENERATED BELOW THIS LINE! ================
+ * ===================================================================================== */
+
+#define CONV_OUTPUT_HEIGHT (IMAGE_HEIGHT - CONV_KERNEL_SIZE + 1)
+#define CONV_OUTPUT_WIDTH (IMAGE_WIDTH - CONV_KERNEL_SIZE + 1)
+#define POOL_OUTPUT_HEIGHT CONV_OUTPUT_HEIGHT / POOL_KERNEL_SIZE
+#define POOL_OUTPUT_WIDTH CONV_OUTPUT_WIDTH / POOL_KERNEL_SIZE
+#define CONV_LAYER_WEIGHTS CONV_KERNEL_SIZE * CONV_KERNEL_SIZE * CONV_OFM_NUMBER * IMAGE_CHANNELS
+#define CONV_LAYER_BIASES CONV_OFM_NUMBER
+#define FC_LAYER_WEIGHTS POOL_OUTPUT_WIDTH * POOL_OUTPUT_HEIGHT * CONV_OFM_NUMBER * N_CLASSES
+#define FC_LAYER_BIASES N_CLASSES
+#define TOTAL_PARAMS (CONV_LAYER_WEIGHTS + CONV_LAYER_BIASES + FC_LAYER_WEIGHTS + FC_LAYER_BIASES)
+
+#endif // __AXIL_CNN_H__
