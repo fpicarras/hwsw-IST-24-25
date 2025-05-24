@@ -4,7 +4,7 @@
 #include <stdio.h>
 
 static float image_in_f[IMAGE_CHANNELS * IMAGE_HEIGHT * IMAGE_WIDTH];
-static float kernel_f[CONV_OFM_NUMBER*CONV_KERNEL_SIZE * CONV_KERNEL_SIZE];
+static float kernel_f[IMAGE_CHANNELS*CONV_OFM_NUMBER*CONV_KERNEL_SIZE * CONV_KERNEL_SIZE];
 static float bias_f[CONV_OFM_NUMBER];
 static float image_out_f[CONV_OFM_NUMBER * CONV_OUTPUT_HEIGHT * CONV_OUTPUT_WIDTH];
 
@@ -50,19 +50,22 @@ void init_inputs_f(int8_t *image_in, int16_t * kernel, int16_t * bias) {
 
   printf("Kernel\n\r");
   for (int i = 0; i < CONV_OFM_NUMBER; i++) {
-      for (int j = 0; j < CONV_KERNEL_SIZE * CONV_KERNEL_SIZE; j++) {
-          int ind = i * CONV_KERNEL_SIZE * CONV_KERNEL_SIZE + j;
+    for(int l = 0; l < IMAGE_CHANNELS; L++){
+        for (int j = 0; j < CONV_KERNEL_SIZE * CONV_KERNEL_SIZE; j++) {
+          int ind = (l+i*IMAGE_CHANNELS) * CONV_KERNEL_SIZE * CONV_KERNEL_SIZE + j;
           kernel_f[ind] = fp_params[ind + CONV_OFM_NUMBER];
-          kernel[ind] = float2fixed(kernel_f[ind], 7);
+          kernel[ind] = float2fixed(kernel_f[ind], 15);
           printf("%6d ", kernel[ind]);
       }
       printf("\n");
+    }
+    printf("\n");
   }
 
   printf("Bias\n\r");
   for (int i = 0; i < CONV_OFM_NUMBER; i++) {
       bias_f[i] = fp_params[i];
-      bias[i] = float2fixed(bias_f[i], 7);
+      bias[i] = float2fixed(bias_f[i], 15);
       printf("%6d ", bias[i]);
   }
   printf("\n");
@@ -77,7 +80,7 @@ void sw_convolution_3D_f() {
                 for (int k = 0; k < CONV_KERNEL_SIZE; k++)
                     for (int x = 0; x < CONV_KERNEL_SIZE; x++) {
                         /* Kernel index */
-                        int kernel_1d_idx = l*(CONV_KERNEL_SIZE*CONV_KERNEL_SIZE) + // kernel number
+                        int kernel_1d_idx = l*(CONV_KERNEL_SIZE*CONV_KERNEL_SIZE*IMAGE_CHANNELS) + // kernel number
                                 k * CONV_KERNEL_SIZE +       /* kernel row */
                                 x;                      /* kernel column */
 
@@ -87,8 +90,8 @@ void sw_convolution_3D_f() {
                                 j + x;                  /* input column */
 
                         accum += kernel_f[kernel_1d_idx] * image_in_f[input_1d_idx];
-                        accum += kernel_f[kernel_1d_idx] * image_in_f[input_1d_idx + IMAGE_HEIGHT * IMAGE_WIDTH];
-                        accum += kernel_f[kernel_1d_idx] * image_in_f[input_1d_idx + 2 * IMAGE_HEIGHT * IMAGE_WIDTH];
+                        accum += kernel_f[kernel_1d_idx + CONV_KERNEL_SIZE*CONV_KERNEL_SIZE] * image_in_f[input_1d_idx + IMAGE_HEIGHT * IMAGE_WIDTH];
+                        accum += kernel_f[kernel_1d_idx + 2*CONV_KERNEL_SIZE*CONV_KERNEL_SIZE] * image_in_f[input_1d_idx + 2 * IMAGE_HEIGHT * IMAGE_WIDTH];
                     }
 
                 /* Normalize result */
