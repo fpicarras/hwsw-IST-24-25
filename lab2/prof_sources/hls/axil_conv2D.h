@@ -21,6 +21,23 @@
 #define POOL_STRIDE 2                    /* stride of pooling operation */
 /* ============================== END OF RUN CONFIGURATION ============================= */
 
+/* ============================ PL DATA CONFIGURATION =========================== */
+#define WEIGHT_BIT_WIDTH 16
+#define BIAS_BIT_WIDTH 16
+#define IMAGE_BIT_WIDTH 8
+#define DATA_BIT_WIDTH 32
+#define IMAGES_PER_DATA DATA_BIT_WIDTH/IMAGE_BIT_WIDTH
+#define WEIGHTS_PER_DATA DATA_BIT_WIDTH/WEIGHT_BIT_WIDTH
+#define BIAS_PER_DATA DATA_BIT_WIDTH/BIAS_BIT_WIDTH
+
+typedef ap_int<DATA_BIT_WIDTH> data_t;
+typedef ap_int<IMAGE_BIT_WIDTH> image_t;
+typedef ap_int<WEIGHT_BIT_WIDTH> weight_t;
+typedef ap_int<BIAS_BIT_WIDTH> bias_t;
+typedef ap_int<WEIGHT_BIT_WIDTH + IMAGE_BIT_WIDTH + 7> accum_t;
+typedef hls::axis<data_t, 0, 0, 0> strmio_t;
+/* ============================== PL DATA CONFIGURATION ============================= */
+
 /* =====================================================================================
  * ================ PARAMETERS AUTOMATICALLY GENERATED BELOW THIS LINE! ================
  * ===================================================================================== */
@@ -35,4 +52,7 @@
 #define FC_LAYER_BIASES N_CLASSES
 #define TOTAL_PARAMS (CONV_LAYER_WEIGHTS + CONV_LAYER_BIASES + FC_LAYER_WEIGHTS + FC_LAYER_BIASES)
 
+
+void axil_conv2D(hls::stream<strmio_t> &strm_in,
+                 hls::stream<strmio_t> &strm_out);
 #endif // __AXIL_CNN_H__
