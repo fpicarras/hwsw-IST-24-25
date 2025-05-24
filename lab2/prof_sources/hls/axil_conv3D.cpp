@@ -11,9 +11,7 @@ void axil_conv3D(hls::stream<strmio_t> &strm_in,
 static data_t image_red[IMAGE_HEIGHT*IMAGE_WIDTH/IMAGES_PER_DATA];
 static data_t image_green[IMAGE_HEIGHT*IMAGE_WIDTH/IMAGES_PER_DATA];
 static data_t image_blue[IMAGE_HEIGHT*IMAGE_WIDTH/IMAGES_PER_DATA];
-static data_t weights_red[CONV_OFM_NUMBER*CONV_KERNEL_SIZE*CONV_KERNEL_SIZE/WEIGHTS_PER_DATA];
-static data_t weights_green[CONV_OFM_NUMBER*CONV_KERNEL_SIZE*CONV_KERNEL_SIZE/WEIGHTS_PER_DATA];
-static data_t weights_blue[CONV_OFM_NUMBER*CONV_KERNEL_SIZE*CONV_KERNEL_SIZE/WEIGHTS_PER_DATA];
+static data_t weights[IMAGE_CHANNELS*CONV_OFM_NUMBER*CONV_KERNEL_SIZE*CONV_KERNEL_SIZE/WEIGHTS_PER_DATA];
 static data_t bias[CONV_OFM_NUMBER/BIAS_PER_DATA];
 
   strmio_t tmp;
@@ -35,20 +33,10 @@ static data_t bias[CONV_OFM_NUMBER/BIAS_PER_DATA];
   }
 
   /* Weights Stream */
-  loop_weights_red:
-  for(int i = 0; i < CONV_OFM_NUMBER*CONV_KERNEL_SIZE*CONV_KERNEL_SIZE/WEIGHTS_PER_DATA; i ++) {
+  loop_weights:
+  for(int i = 0; i < IMAGE_CHANNELS*CONV_OFM_NUMBER*CONV_KERNEL_SIZE*CONV_KERNEL_SIZE/WEIGHTS_PER_DATA; i ++) {
     tmp = strm_in.read();
-    weights_red[i] = tmp.data;
-  }
-  loop_weights_green:
-  for(int i = 0; i < CONV_OFM_NUMBER*CONV_KERNEL_SIZE*CONV_KERNEL_SIZE/WEIGHTS_PER_DATA; i ++) {
-    tmp = strm_in.read();
-    weights_green[i] = tmp.data;
-  }
-  loop_weights_blue:
-  for(int i = 0; i < CONV_OFM_NUMBER*CONV_KERNEL_SIZE*CONV_KERNEL_SIZE/WEIGHTS_PER_DATA; i ++) {
-    tmp = strm_in.read();
-    weights_blue[i] = tmp.data;
+    weights[i] = tmp.data;
   }
 
   loop_bias:
@@ -57,6 +45,7 @@ static data_t bias[CONV_OFM_NUMBER/BIAS_PER_DATA];
     bias[i] = tmp.data;
   }
 
+  image_t conv2 [IMAGES_PER_DATA];
   loop_conv:
   for(int l = 0; l < CONV_OFM_NUMBER; l++) {
     loop_i:
@@ -76,19 +65,24 @@ static data_t bias[CONV_OFM_NUMBER/BIAS_PER_DATA];
   #pragma HLS PIPELINE
           // Indices are initialized here to highlight
           // the incremental counting in the inner loop
-          int kernel_1d_idx = k * CONV_KERNEL_SIZE + l*(CONV_KERNEL_SIZE*CONV_KERNEL_SIZE); /* start of kernel row */
-          int image_1d_idx = (i + k) * IMAGE_WIDTH + j; /* start of input row */
-          int image_1d_idx2, kernel_1d_idx2;
+          int kernel_1d_idx = k * CONV_KERNEL_SIZE + l*(CONV_KERNEL_SIZE*CONV_KERNEL_SIZE*IMAGE_CHANNELS); /* start of kernel row */
+          int image_1d_idx_base = (i + k) * IMAGE_WIDTH + j; /* start of input row */
           loop_x:
-          for (int x = 0; x < CONV_KERNEL_SIZE; x++, kernel_1d_idx++, image_1d_idx++) {
-            image_1d_idx2 = image_1d_idx & 0x3;
-            kernel_1d_idx2 = kernel_1d_idx & 0x1;
-            image_r = (image_t)((image_red[image_1d_idx >> 2] >> (image_1d_idx2 << 3)) & 0xFF);
-            image_g = (image_t)((image_green[image_1d_idx >> 2] >> (image_1d_idx2 << 3)) & 0xFF);
-            image_b = (image_t)((image_blue[image_1d_idx >> 2] >> (image_1d_idx2 << 3)) & 0xFF);
-            weight_r  = (weight_t)((weights_red[kernel_1d_idx >> 1] >> (kernel_1d_idx2 << 4)) & 0xFFFF);
-            weight_g  = (weight_t)((weights_green[kernel_1d_idx >> 1] >> (kernel_1d_idx2 << 4)) & 0xFFFF);
-            weight_b  = (weight_t)((weights_blue[kernel_1d_idx >> 1] >> (kernel_1d_idx2 << 4)) & 0xFFFF);
+          for (int x = 0; x < CONV_KERNEL_SIZE; x++) {
+            int image_1d_idx = image_1d_idx_base + x;
+            int image_1d_idx2 = image_1d_idx & 0x3;
+            int kernel_1d_idx_r = (kernel_1d_idx + x);
+            int kernel_1d_idx_g = (kernel_1d_idx + x) + CONV_KERNEL_SIZE*CONV_KERNEL_SIZE;
+            int kernel_1d_idx_b = (kernel_1d_idx + x) + 2*CONV_KERNEL_SIZE*CONV_KERNEL_SIZE;
+            int kernel_1d_idx2_r = kernel_1d_idx_r & 0x1;
+            int kernel_1d_idx2_g = kernel_1d_idx_g & 0x1;
+            int kernel_1d_idx2_b = kernel_1d_idx_b & 0x1;
+            image_r = (image_red[image_1d_idx >> 2] >> (image_1d_idx2 << 3)) & 0xFF;
+            image_g = (image_green[image_1d_idx >> 2] >> (image_1d_idx2 << 3)) & 0xFF;
+            image_b = (image_blue[image_1d_idx >> 2] >> (image_1d_idx2 << 3)) & 0xFF;
+            weight_r  = (weights[kernel_1d_idx_r >> 1] >> (kernel_1d_idx2_r << 4)) & 0xFFFF;
+            weight_g  = (weights[kernel_1d_idx_g >> 1] >> (kernel_1d_idx2_g << 4)) & 0xFFFF;
+            weight_b  = (weights[kernel_1d_idx_b >> 1] >> (kernel_1d_idx2_b << 4)) & 0xFFFF;
             acc_r += weight_r * image_r;
             acc_g += weight_g * image_g;
             acc_b += weight_b * image_b;
@@ -108,13 +102,16 @@ static data_t bias[CONV_OFM_NUMBER/BIAS_PER_DATA];
         else
           acc_sat = acc;
 
-        tmp_out = tmp_out >> 8;
-        tmp_out(31, 24) = acc_sat;
+        int ind_out = (i * CONV_OUTPUT_WIDTH + j) & 0x3;
+        conv2[ind_out] = acc_sat;
 
-        if(((i * CONV_OUTPUT_WIDTH + j) & 0x3) == 0x3) {
+        if(ind_out == 0x3) {
           strmio_t chunk_out;
           chunk_out.last = ((i == CONV_OUTPUT_HEIGHT - 1) && (j == CONV_OUTPUT_WIDTH - 1) && (l == CONV_OFM_NUMBER - 1));
-          chunk_out.data = tmp_out;
+          chunk_out.data(7,0) = conv2[0];
+          chunk_out.data(15,8) = conv2[1];
+          chunk_out.data(23,16) = conv2[2];
+          chunk_out.data(31,24) = conv2[3];
           chunk_out.keep = 0xF;
           chunk_out.strb = 0xF;
           strm_out.write(chunk_out);
