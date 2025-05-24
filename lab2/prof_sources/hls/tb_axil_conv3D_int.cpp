@@ -1,6 +1,6 @@
 
-#include "tb_axil_conv2D_int.h"
-#include "axil_conv2D.h"
+#include "tb_axil_conv3D_int.h"
+#include "axil_conv3D.h"
 
 void init_inputs(int8_t *image_in, int16_t * kernel, int16_t * bias) {
   printf("Input Image\n\r");
@@ -30,7 +30,7 @@ void init_inputs(int8_t *image_in, int16_t * kernel, int16_t * bias) {
   printf("\n");
 }
 
-void sw_convolution_2D(const int8_t *matrix_in, const int16_t * kernel, const int16_t * bias, int8_t *matrix_out) {
+void sw_convolution_3D(const int8_t *matrix_in, const int16_t * kernel, const int16_t * bias, int8_t *matrix_out) {
     for(int l = 0; l < CONV_OFM_NUMBER; l ++)
         for (int i = 0; i < CONV_OUTPUT_HEIGHT; i++)
             for (int j = 0; j < CONV_OUTPUT_WIDTH; j++) {

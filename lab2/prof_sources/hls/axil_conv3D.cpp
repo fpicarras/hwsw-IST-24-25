@@ -1,7 +1,7 @@
 
-#include "axil_conv2D.h"
+#include "axil_conv3D.h"
 
-void axil_conv2D(hls::stream<strmio_t> &strm_in,
+void axil_conv3D(hls::stream<strmio_t> &strm_in,
                  hls::stream<strmio_t> &strm_out) {
 
 #pragma HLS INTERFACE ap_ctrl_none port=return

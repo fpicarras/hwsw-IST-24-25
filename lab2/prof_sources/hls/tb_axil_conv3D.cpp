@@ -1,6 +1,6 @@
 
-#include "axil_conv2D.h"
-#include "tb_axil_conv2D_int.h"
+#include "axil_conv3D.h"
+#include "tb_axil_conv3D_int.h"
 #include <stdint.h>
 
 static int8_t image_in[IMAGE_CHANNELS * IMAGE_HEIGHT * IMAGE_WIDTH];
@@ -42,7 +42,7 @@ int main() {
         tmp_in.last = (ap_int<1>)(i == (CONV_OFM_NUMBER - 2));
         str_in.write(tmp_in);
     }
-    axil_conv2D(str_in, str_out);
+    axil_conv3D(str_in, str_out);
     for (int i = 0; i < CONV_OFM_NUMBER*CONV_OUTPUT_HEIGHT*CONV_OUTPUT_WIDTH; i+=4) {
         tmp_out = str_out.read();
         hw_image_out[i] = tmp_out.data(7, 0);
@@ -51,7 +51,7 @@ int main() {
         hw_image_out[i + 3] = tmp_out.data(31, 24);
     }
 
-    sw_convolution_2D(image_in, kernel, bias, sw_image_out);
+    sw_convolution_3D(image_in, kernel, bias, sw_image_out);
 
     return check_output(sw_image_out, hw_image_out);
 }

@@ -54,6 +54,6 @@ typedef hls::axis<data_t, 0, 0, 0> strmio_t;
 #define WEIGHTS_PER_DATA (DATA_BIT_WIDTH/WEIGHT_BIT_WIDTH)
 #define BIAS_PER_DATA (DATA_BIT_WIDTH/BIAS_BIT_WIDTH)
 
-void axil_conv2D(hls::stream<strmio_t> &strm_in,
+void axil_conv3D(hls::stream<strmio_t> &strm_in,
                  hls::stream<strmio_t> &strm_out);
 #endif // __AXIL_CNN_H__
