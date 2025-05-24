@@ -1,7 +1,6 @@
 
 #include "axil_conv3D.h"
 #include "tb_axil_conv3D_int.h"
-#include <stdint.h>
 
 static int8_t image_in[IMAGE_CHANNELS * IMAGE_HEIGHT * IMAGE_WIDTH];
 static int16_t kernel[CONV_OFM_NUMBER*CONV_KERNEL_SIZE * CONV_KERNEL_SIZE];

@@ -8,12 +8,13 @@
 
 /* ========================== START OF TEST SET CONFIGURATION ========================== */
 
-#define N_IMAGES 200                 /* number of images in the binary file */
+#define N_IMAGES 1                 /* number of images in the binary file */
 #define IMAGE_HEIGHT 6              /* width of the images */
 #define IMAGE_WIDTH IMAGE_HEIGHT     /* height of the images */
 #define IMAGE_CHANNELS 3             /* number of channels (red + green + blue) */
 #define N_CLASSES 10                 /* number of possible classes */
-
+#define WEIGHTS_FILENAME "weights.bin"   /* file where the weights are stored */
+#define IMAGES_FILENAME "images.bin" /* file where the images are stored */
 /* =========================== END OF TEST SET CONFIGURATION =========================== */
 
 /* ============================ START OF MODEL CONFIGURATION =========================== */
@@ -47,12 +48,14 @@ typedef hls::axis<data_t, 0, 0, 0> strmio_t;
 #define POOL_OUTPUT_WIDTH CONV_OUTPUT_WIDTH / POOL_KERNEL_SIZE
 #define CONV_LAYER_WEIGHTS CONV_KERNEL_SIZE * CONV_KERNEL_SIZE * CONV_OFM_NUMBER * IMAGE_CHANNELS
 #define CONV_LAYER_BIASES CONV_OFM_NUMBER
+#define CONV_LAYER_PARAMS CONV_LAYER_WEIGHTS + CONV_LAYER_BIASES
 #define FC_LAYER_WEIGHTS POOL_OUTPUT_WIDTH * POOL_OUTPUT_HEIGHT * CONV_OFM_NUMBER * N_CLASSES
 #define FC_LAYER_BIASES N_CLASSES
 #define TOTAL_PARAMS (CONV_LAYER_WEIGHTS + CONV_LAYER_BIASES + FC_LAYER_WEIGHTS + FC_LAYER_BIASES)
 #define IMAGES_PER_DATA (DATA_BIT_WIDTH/IMAGE_BIT_WIDTH)
 #define WEIGHTS_PER_DATA (DATA_BIT_WIDTH/WEIGHT_BIT_WIDTH)
 #define BIAS_PER_DATA (DATA_BIT_WIDTH/BIAS_BIT_WIDTH)
+#define IMAGE_SIZE IMAGE_HEIGHT * IMAGE_WIDTH * IMAGE_CHANNELS
 
 void axil_conv3D(hls::stream<strmio_t> &strm_in,
                  hls::stream<strmio_t> &strm_out);
