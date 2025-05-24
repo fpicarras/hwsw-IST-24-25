@@ -2,12 +2,14 @@
 #ifndef __AXIL_CNN_H__
 #define __AXIL_CNN_H__
 
+#include <ap_int.h>
 #include <hls_stream.h>
+#include "ap_axi_sdata.h"
 
 /* ========================== START OF TEST SET CONFIGURATION ========================== */
 
 #define N_IMAGES 200                 /* number of images in the binary file */
-#define IMAGE_HEIGHT 88              /* width of the images */
+#define IMAGE_HEIGHT 6              /* width of the images */
 #define IMAGE_WIDTH IMAGE_HEIGHT     /* height of the images */
 #define IMAGE_CHANNELS 3             /* number of channels (red + green + blue) */
 #define N_CLASSES 10                 /* number of possible classes */
@@ -16,7 +18,7 @@
 
 /* ============================ START OF MODEL CONFIGURATION =========================== */
 #define CONV_KERNEL_SIZE 3               /* size of the convolution kernel */
-#define CONV_OFM_NUMBER 16               /* number of OFMs of convolutional layer */
+#define CONV_OFM_NUMBER 2               /* number of OFMs of convolutional layer */
 #define POOL_KERNEL_SIZE 2               /* size of pooling kernel */
 #define POOL_STRIDE 2                    /* stride of pooling operation */
 /* ============================== END OF RUN CONFIGURATION ============================= */
@@ -26,9 +28,6 @@
 #define BIAS_BIT_WIDTH 16
 #define IMAGE_BIT_WIDTH 8
 #define DATA_BIT_WIDTH 32
-#define IMAGES_PER_DATA DATA_BIT_WIDTH/IMAGE_BIT_WIDTH
-#define WEIGHTS_PER_DATA DATA_BIT_WIDTH/WEIGHT_BIT_WIDTH
-#define BIAS_PER_DATA DATA_BIT_WIDTH/BIAS_BIT_WIDTH
 
 typedef ap_int<DATA_BIT_WIDTH> data_t;
 typedef ap_int<IMAGE_BIT_WIDTH> image_t;
@@ -51,7 +50,9 @@ typedef hls::axis<data_t, 0, 0, 0> strmio_t;
 #define FC_LAYER_WEIGHTS POOL_OUTPUT_WIDTH * POOL_OUTPUT_HEIGHT * CONV_OFM_NUMBER * N_CLASSES
 #define FC_LAYER_BIASES N_CLASSES
 #define TOTAL_PARAMS (CONV_LAYER_WEIGHTS + CONV_LAYER_BIASES + FC_LAYER_WEIGHTS + FC_LAYER_BIASES)
-
+#define IMAGES_PER_DATA (DATA_BIT_WIDTH/IMAGE_BIT_WIDTH)
+#define WEIGHTS_PER_DATA (DATA_BIT_WIDTH/WEIGHT_BIT_WIDTH)
+#define BIAS_PER_DATA (DATA_BIT_WIDTH/BIAS_BIT_WIDTH)
 
 void axil_conv2D(hls::stream<strmio_t> &strm_in,
                  hls::stream<strmio_t> &strm_out);

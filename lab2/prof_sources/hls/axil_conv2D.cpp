@@ -74,7 +74,7 @@ static data_t bias[CONV_OFM_NUMBER/BIAS_PER_DATA];
             image_r = (image_t)((image_red[image_1d_idx >> 2] >> (image_1d_idx2 << 3)) & 0xFF);
             image_g = (image_t)((image_green[image_1d_idx >> 2] >> (image_1d_idx2 << 3)) & 0xFF);
             image_b = (image_t)((image_blue[image_1d_idx >> 2] >> (image_1d_idx2 << 3)) & 0xFF);
-            weight  = (weight_t)((weights[kernel_1d_idx >> 1] >> (kernel_1d_idx2 << 4)) & 0xFF);
+            weight  = (weight_t)((weights[kernel_1d_idx >> 1] >> (kernel_1d_idx2 << 4)) & 0xFFFF);
             acc_r += weight * image_r;
             acc_g += weight * image_g;
             acc_b += weight * image_b;
@@ -82,9 +82,10 @@ static data_t bias[CONV_OFM_NUMBER/BIAS_PER_DATA];
         }
 
         int bias_idx2 = l & 0x1;
-        bias_t bia = (bias_t)((bias[l >> 1] >> (bias_idx2 << 4)) & 0xFF);
+        bias_t bia = (bias_t)((bias[l >> 1] >> (bias_idx2 << 4)) & 0xFFFF);
         accum_t acc = acc_r + acc_g + acc_b + bia;
 
+        acc = acc >> WEIGHT_BIT_WIDTH;
         /* Normalize */
         if (acc > 127)
           acc_sat = 127;
