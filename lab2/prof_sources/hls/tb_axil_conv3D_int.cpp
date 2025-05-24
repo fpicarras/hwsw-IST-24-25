@@ -16,11 +16,13 @@ void init_inputs(int8_t *image_in, int16_t * kernel, int16_t * bias) {
   }
   printf("Kernel\n\r");
   for (int i = 0; i < CONV_OFM_NUMBER; i++) {
-      for (int j = 0; j < CONV_KERNEL_SIZE * CONV_KERNEL_SIZE; j++) {
-          kernel[i * CONV_KERNEL_SIZE * CONV_KERNEL_SIZE + j] = (1 << (14 + i)) + (1 << 13)*j;
-          printf("%6d ", kernel[i * CONV_KERNEL_SIZE * CONV_KERNEL_SIZE + j]);
-      }
-      printf("\n");
+    for(int l = 0; l < IMAGE_CHANNELS; l++) {
+        for (int j = 0; j < CONV_KERNEL_SIZE * CONV_KERNEL_SIZE; j++) {
+            kernel[(l + i*IMAGE_CHANNELS) * CONV_KERNEL_SIZE * CONV_KERNEL_SIZE + j] = (1 << (14 + i)) + (1 << 13)*j;
+            printf("%6d ", kernel[(l + i*IMAGE_CHANNELS) * CONV_KERNEL_SIZE * CONV_KERNEL_SIZE + j]);
+        }
+    }
+    printf("\n");
   }
   printf("Bias\n\r");
   for (int i = 0; i < CONV_OFM_NUMBER; i++) {
@@ -39,7 +41,7 @@ void sw_convolution_3D(const int8_t *matrix_in, const int16_t * kernel, const in
                 for (int k = 0; k < CONV_KERNEL_SIZE; k++)
                     for (int x = 0; x < CONV_KERNEL_SIZE; x++) {
                         /* Kernel index */
-                        int kernel_1d_idx = l*(CONV_KERNEL_SIZE*CONV_KERNEL_SIZE) + // kernel number
+                        int kernel_1d_idx = l*(CONV_KERNEL_SIZE*CONV_KERNEL_SIZE*IMAGE_CHANNELS) + // kernel number
                                 k * CONV_KERNEL_SIZE +       /* kernel row */
                                 x;                      /* kernel column */
 
@@ -49,8 +51,8 @@ void sw_convolution_3D(const int8_t *matrix_in, const int16_t * kernel, const in
                                 j + x;                  /* input column */
 
                         accum += kernel[kernel_1d_idx] * matrix_in[input_1d_idx];
-                        accum += kernel[kernel_1d_idx] * matrix_in[input_1d_idx + IMAGE_HEIGHT * IMAGE_WIDTH];
-                        accum += kernel[kernel_1d_idx] * matrix_in[input_1d_idx + 2 * IMAGE_HEIGHT * IMAGE_WIDTH];
+                        accum += kernel[kernel_1d_idx + CONV_KERNEL_SIZE*CONV_KERNEL_SIZE] * matrix_in[input_1d_idx + IMAGE_HEIGHT * IMAGE_WIDTH];
+                        accum += kernel[kernel_1d_idx + 2*CONV_KERNEL_SIZE*CONV_KERNEL_SIZE] * matrix_in[input_1d_idx + 2 * IMAGE_HEIGHT * IMAGE_WIDTH];
                     }
 
                 /* Normalize result */

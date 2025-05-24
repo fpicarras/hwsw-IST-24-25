@@ -11,32 +11,44 @@ void axil_conv3D(hls::stream<strmio_t> &strm_in,
 static data_t image_red[IMAGE_HEIGHT*IMAGE_WIDTH/IMAGES_PER_DATA];
 static data_t image_green[IMAGE_HEIGHT*IMAGE_WIDTH/IMAGES_PER_DATA];
 static data_t image_blue[IMAGE_HEIGHT*IMAGE_WIDTH/IMAGES_PER_DATA];
-static data_t weights[CONV_OFM_NUMBER*CONV_KERNEL_SIZE*CONV_KERNEL_SIZE/WEIGHTS_PER_DATA];
+static data_t weights_red[CONV_OFM_NUMBER*CONV_KERNEL_SIZE*CONV_KERNEL_SIZE/WEIGHTS_PER_DATA];
+static data_t weights_green[CONV_OFM_NUMBER*CONV_KERNEL_SIZE*CONV_KERNEL_SIZE/WEIGHTS_PER_DATA];
+static data_t weights_blue[CONV_OFM_NUMBER*CONV_KERNEL_SIZE*CONV_KERNEL_SIZE/WEIGHTS_PER_DATA];
 static data_t bias[CONV_OFM_NUMBER/BIAS_PER_DATA];
 
   strmio_t tmp;
+  /* Input Image Stream */
   loop_red: 
   for(int i = 0; i < IMAGE_HEIGHT*IMAGE_WIDTH/IMAGES_PER_DATA; i ++) {
     tmp = strm_in.read();
     image_red[i] = tmp.data;
   }
-
   loop_green: 
   for(int i = 0; i < IMAGE_HEIGHT*IMAGE_WIDTH/IMAGES_PER_DATA; i ++) {
     tmp = strm_in.read();
     image_green[i] = tmp.data;
   }
-
   loop_blue: 
   for(int i = 0; i < IMAGE_HEIGHT*IMAGE_WIDTH/IMAGES_PER_DATA; i ++) {
     tmp = strm_in.read();
     image_blue[i] = tmp.data;
   }
 
-  loop_weights:
+  /* Weights Stream */
+  loop_weights_red:
   for(int i = 0; i < CONV_OFM_NUMBER*CONV_KERNEL_SIZE*CONV_KERNEL_SIZE/WEIGHTS_PER_DATA; i ++) {
     tmp = strm_in.read();
-    weights[i] = tmp.data;
+    weights_red[i] = tmp.data;
+  }
+  loop_weights_green:
+  for(int i = 0; i < CONV_OFM_NUMBER*CONV_KERNEL_SIZE*CONV_KERNEL_SIZE/WEIGHTS_PER_DATA; i ++) {
+    tmp = strm_in.read();
+    weights_green[i] = tmp.data;
+  }
+  loop_weights_blue:
+  for(int i = 0; i < CONV_OFM_NUMBER*CONV_KERNEL_SIZE*CONV_KERNEL_SIZE/WEIGHTS_PER_DATA; i ++) {
+    tmp = strm_in.read();
+    weights_blue[i] = tmp.data;
   }
 
   loop_bias:
@@ -57,7 +69,7 @@ static data_t bias[CONV_OFM_NUMBER/BIAS_PER_DATA];
 
         image_t image_r, image_g, image_b, acc_sat;
         data_t tmp_out;
-        weight_t weight;
+        weight_t weight_r, weight_g, weight_b;
 
         loop_k:
         for (int k = 0; k < CONV_KERNEL_SIZE; k++) {
@@ -74,10 +86,12 @@ static data_t bias[CONV_OFM_NUMBER/BIAS_PER_DATA];
             image_r = (image_t)((image_red[image_1d_idx >> 2] >> (image_1d_idx2 << 3)) & 0xFF);
             image_g = (image_t)((image_green[image_1d_idx >> 2] >> (image_1d_idx2 << 3)) & 0xFF);
             image_b = (image_t)((image_blue[image_1d_idx >> 2] >> (image_1d_idx2 << 3)) & 0xFF);
-            weight  = (weight_t)((weights[kernel_1d_idx >> 1] >> (kernel_1d_idx2 << 4)) & 0xFFFF);
-            acc_r += weight * image_r;
-            acc_g += weight * image_g;
-            acc_b += weight * image_b;
+            weight_r  = (weight_t)((weights_red[kernel_1d_idx >> 1] >> (kernel_1d_idx2 << 4)) & 0xFFFF);
+            weight_g  = (weight_t)((weights_green[kernel_1d_idx >> 1] >> (kernel_1d_idx2 << 4)) & 0xFFFF);
+            weight_b  = (weight_t)((weights_blue[kernel_1d_idx >> 1] >> (kernel_1d_idx2 << 4)) & 0xFFFF);
+            acc_r += weight_r * image_r;
+            acc_g += weight_g * image_g;
+            acc_b += weight_b * image_b;
           }
         }
 

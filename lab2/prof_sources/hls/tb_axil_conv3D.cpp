@@ -3,7 +3,7 @@
 #include "tb_axil_conv3D_int.h"
 
 static int8_t image_in[IMAGE_CHANNELS * IMAGE_HEIGHT * IMAGE_WIDTH];
-static int16_t kernel[CONV_OFM_NUMBER*CONV_KERNEL_SIZE * CONV_KERNEL_SIZE];
+static int16_t kernel[IMAGE_CHANNELS*CONV_OFM_NUMBER*CONV_KERNEL_SIZE * CONV_KERNEL_SIZE];
 static int16_t bias[CONV_OFM_NUMBER];
 
 static int8_t hw_image_out[CONV_OFM_NUMBER * CONV_OUTPUT_HEIGHT * CONV_OUTPUT_WIDTH];
@@ -29,7 +29,7 @@ int main() {
         tmp_in.last = (ap_int<1>)0;
         str_in.write(tmp_in);
     }
-    for (int i = 0; i < CONV_OFM_NUMBER*CONV_KERNEL_SIZE*CONV_KERNEL_SIZE; i+=2) {
+    for (int i = 0; i < IMAGE_CHANNELS*CONV_OFM_NUMBER*CONV_KERNEL_SIZE*CONV_KERNEL_SIZE; i+=2) {
         tmp_in.data(15, 0) = kernel[i];
         tmp_in.data(31, 16) = kernel[i + 1];
         tmp_in.last = (ap_int<1>)0;
