@@ -28,13 +28,17 @@
 #define WEIGHT_BIT_WIDTH 16
 #define BIAS_BIT_WIDTH 16
 #define IMAGE_BIT_WIDTH 8
+#define OUTPUT_BIT_WIDTH 16
 #define DATA_BIT_WIDTH 32
+#define INTEGER_BIT_WIDTH 5
+#define ACCUM_BIT_WIDTH WEIGHT_BIT_WIDTH + IMAGE_BIT_WIDTH + INTEGER_BIT_WIDTH - 1
 
 typedef ap_int<DATA_BIT_WIDTH> data_t;
 typedef ap_int<IMAGE_BIT_WIDTH> image_t;
 typedef ap_int<WEIGHT_BIT_WIDTH> weight_t;
 typedef ap_int<BIAS_BIT_WIDTH> bias_t;
-typedef ap_int<WEIGHT_BIT_WIDTH + IMAGE_BIT_WIDTH + 7> accum_t;
+typedef ap_int<OUTPUT_BIT_WIDTH> output_t;
+typedef ap_int<ACCUM_BIT_WIDTH> accum_t;
 typedef hls::axis<data_t, 0, 0, 0> strmio_t;
 /* ============================== PL DATA CONFIGURATION ============================= */
 
@@ -55,6 +59,7 @@ typedef hls::axis<data_t, 0, 0, 0> strmio_t;
 #define IMAGES_PER_DATA (DATA_BIT_WIDTH/IMAGE_BIT_WIDTH)
 #define WEIGHTS_PER_DATA (DATA_BIT_WIDTH/WEIGHT_BIT_WIDTH)
 #define BIAS_PER_DATA (DATA_BIT_WIDTH/BIAS_BIT_WIDTH)
+#define OUTPUTS_PER_DATA (DATA_BIT_WIDTH/OUTPUT_BIT_WIDTH)
 #define IMAGE_SIZE IMAGE_HEIGHT * IMAGE_WIDTH * IMAGE_CHANNELS
 
 void axil_conv3D(hls::stream<strmio_t> &strm_in,

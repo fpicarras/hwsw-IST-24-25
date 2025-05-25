@@ -45,7 +45,7 @@ static data_t bias[CONV_OFM_NUMBER/BIAS_PER_DATA];
     bias[i] = tmp.data;
   }
 
-  image_t conv2 [IMAGES_PER_DATA];
+  output_t conv [OUTPUTS_PER_DATA];
   loop_conv:
   for(int l = 0; l < CONV_OFM_NUMBER; l++) {
     loop_i:
@@ -56,7 +56,8 @@ static data_t bias[CONV_OFM_NUMBER/BIAS_PER_DATA];
         accum_t acc_g = 0;
         accum_t acc_b = 0;
 
-        image_t image_r, image_g, image_b, acc_sat;
+        image_t image_r, image_g, image_b;
+        output_t acc_sat;
         data_t tmp_out;
         weight_t weight_r, weight_g, weight_b;
 
@@ -91,27 +92,23 @@ static data_t bias[CONV_OFM_NUMBER/BIAS_PER_DATA];
 
         int bias_idx2 = l & 0x1;
         bias_t bia = (bias_t)((bias[l >> 1] >> (bias_idx2 << 4)) & 0xFFFF);
-        accum_t acc = acc_r + acc_g + acc_b + bia;
+        accum_t acc = acc_r + acc_g + acc_b + ((accum_t)bia << (ACCUM_BIT_WIDTH - INTEGER_BIT_WIDTH - WEIGHT_BIT_WIDTH));
 
-        acc = acc >> WEIGHT_BIT_WIDTH;
+        acc = acc >> (ACCUM_BIT_WIDTH - OUTPUT_BIT_WIDTH);
         /* Normalize */
-        if (acc > 127)
-          acc_sat = 127;
-        else if (acc < 0)
+        if (acc < 0)
           acc_sat = 0;
         else
           acc_sat = acc;
 
-        int ind_out = (i * CONV_OUTPUT_WIDTH + j) & 0x3;
-        conv2[ind_out] = acc_sat;
+        int ind_out = (i * CONV_OUTPUT_WIDTH + j) & 0x1;
+        conv[ind_out] = acc_sat;
 
-        if(ind_out == 0x3) {
+        if(ind_out == 0x1) {
           strmio_t chunk_out;
           chunk_out.last = ((i == CONV_OUTPUT_HEIGHT - 1) && (j == CONV_OUTPUT_WIDTH - 1) && (l == CONV_OFM_NUMBER - 1));
-          chunk_out.data(7,0) = conv2[0];
-          chunk_out.data(15,8) = conv2[1];
-          chunk_out.data(23,16) = conv2[2];
-          chunk_out.data(31,24) = conv2[3];
+          chunk_out.data(15,0) = conv[0];
+          chunk_out.data(31,16) = conv[1];
           chunk_out.keep = 0xF;
           chunk_out.strb = 0xF;
           strm_out.write(chunk_out);
