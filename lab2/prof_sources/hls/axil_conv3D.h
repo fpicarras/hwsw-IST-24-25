@@ -13,8 +13,8 @@
 #define IMAGE_WIDTH IMAGE_HEIGHT     /* height of the images */
 #define IMAGE_CHANNELS 3             /* number of channels (red + green + blue) */
 #define N_CLASSES 10                 /* number of possible classes */
-#define WEIGHTS_FILENAME "weights.bin"   /* file where the weights are stored */
-#define IMAGES_FILENAME "images.bin" /* file where the images are stored */
+#define WEIGHTS_FILENAME "/home/joao-pedro/Documents/Tecnico/Y1-P4/HW/Labs/hwsw-IST-24-25/lab2/prof_sources/simple_cnn/weights.bin"   /* file where the weights are stored */
+#define IMAGES_FILENAME "/home/joao-pedro/Documents/Tecnico/Y1-P4/HW/Labs/hwsw-IST-24-25/lab2/prof_sources/simple_cnn/images.bin" /* file where the images are stored */
 /* =========================== END OF TEST SET CONFIGURATION =========================== */
 
 /* ============================ START OF MODEL CONFIGURATION =========================== */
