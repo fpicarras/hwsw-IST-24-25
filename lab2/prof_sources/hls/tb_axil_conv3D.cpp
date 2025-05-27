@@ -4,19 +4,19 @@
 
 #define FLT_MAX 3.402823466e+38F
 
-static int8_t image_in_i[IMAGE_CHANNELS * IMAGE_HEIGHT * IMAGE_WIDTH];
-static int16_t kernel_i[IMAGE_CHANNELS*CONV_OFM_NUMBER*CONV_KERNEL_SIZE * CONV_KERNEL_SIZE];
-static int16_t bias_i[CONV_OFM_NUMBER];
-static int16_t image_out_i[CONV_OFM_NUMBER * CONV_OUTPUT_HEIGHT * CONV_OUTPUT_WIDTH];
-static int16_t maxpool_i[CONV_OFM_NUMBER * POOL_OUTPUT_HEIGHT * POOL_OUTPUT_WIDTH];
+static int8_t image_in_i[IMAGE_SIZE];
+static int16_t kernel_i[CONV_LAYER_WEIGHTS];
+static int16_t bias_i[CONV_LAYER_BIASES];
+static int16_t image_out_i[CONV_OUTPUT_SIZE];
+static int16_t maxpool_i[POOL_OUTPUT_SIZE];
 
-static float image_in_f[IMAGE_CHANNELS * IMAGE_HEIGHT * IMAGE_WIDTH];
-static float kernel_f[IMAGE_CHANNELS*CONV_OFM_NUMBER*CONV_KERNEL_SIZE * CONV_KERNEL_SIZE];
+static float image_in_f[IMAGE_SIZE];
+static float kernel_f[CONV_LAYER_WEIGHTS];
 static float bias_f[CONV_OFM_NUMBER];
-static float image_out_f[CONV_OFM_NUMBER * CONV_OUTPUT_HEIGHT * CONV_OUTPUT_WIDTH];
-static float maxpool_f[CONV_OFM_NUMBER * POOL_OUTPUT_HEIGHT * POOL_OUTPUT_WIDTH];
+static float image_out_f[CONV_OUTPUT_SIZE];
+static float maxpool_f[POOL_OUTPUT_SIZE];
 
-static int16_t hw_matrix_out[CONV_OFM_NUMBER * HW_MATRIX_OUT_HEIGHT * HW_MATRIX_OUT_WIDTH];
+static int16_t hw_matrix_out[HW_MATRIX_OUT_SIZE];
 
 int float2fixed(float f, int scale) {
   return (int)(f * (float)(1 << scale) + 0.5F);
@@ -255,7 +255,7 @@ int main() {
     hls::stream<strmout_t> str_out;
     strmin_t tmp_in;
     strmout_t tmp_out;
-    for (int i = 0; i < IMAGE_CHANNELS*IMAGE_HEIGHT*IMAGE_WIDTH; i+=4) {
+    for (int i = 0; i < IMAGE_SIZE; i+=4) {
         tmp_in.data(7, 0) = image_in_i[i];
         tmp_in.data(15, 8) = image_in_i[i + 1];
         tmp_in.data(23, 16) = image_in_i[i + 2];
@@ -263,20 +263,20 @@ int main() {
         tmp_in.last = (ap_int<1>)0;
         str_in.write(tmp_in);
     }
-    for (int i = 0; i < IMAGE_CHANNELS*CONV_OFM_NUMBER*CONV_KERNEL_SIZE*CONV_KERNEL_SIZE; i+=2) {
-        tmp_in.data(15, 0) = kernel_i[i];
-        tmp_in.data(31, 16) = kernel_i[i + 1];
-        tmp_in.last = (ap_int<1>)0;
-        str_in.write(tmp_in);
-    }
-    for (int i = 0; i < CONV_OFM_NUMBER; i+=2) {
+    for (int i = 0; i < CONV_LAYER_BIASES; i+=2) {
         tmp_in.data(15, 0) = bias_i[i];
         tmp_in.data(31, 16) = bias_i[i + 1];
-        tmp_in.last = (ap_int<1>)(i == (CONV_OFM_NUMBER - 2));
+        tmp_in.last = (ap_int<1>)(i == (CONV_LAYER_BIASES - 2));
+        str_in.write(tmp_in);
+    }
+    for (int i = 0; i < CONV_LAYER_WEIGHTS; i+=2) {
+        tmp_in.data(15, 0) = kernel_i[i];
+        tmp_in.data(31, 16) = kernel_i[i + 1];
+        tmp_in.last = (ap_int<1>)(i == CONV_LAYER_WEIGHTS - 2);
         str_in.write(tmp_in);
     }
     axil_conv3D(str_in, str_out);
-    for (int i = 0; i < CONV_OFM_NUMBER*HW_MATRIX_OUT_HEIGHT*HW_MATRIX_OUT_WIDTH; i++) {
+    for (int i = 0; i < HW_MATRIX_OUT_SIZE; i++) {
         tmp_out = str_out.read();
         hw_matrix_out[i] = tmp_out.data;
     }

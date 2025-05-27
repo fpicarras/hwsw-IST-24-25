@@ -32,17 +32,18 @@ static data_t bias[CONV_OFM_NUMBER/BIAS_PER_DATA];
     image_blue[i] = tmp.data;
   }
 
+  /* Bias Stream */
+  loop_bias:
+  for(int i = 0; i < CONV_OFM_NUMBER/BIAS_PER_DATA; i ++) {
+    tmp = strm_in.read();
+    bias[i] = tmp.data;
+  }
+
   /* Weights Stream */
   loop_weights:
   for(int i = 0; i < IMAGE_CHANNELS*CONV_OFM_NUMBER*CONV_KERNEL_SIZE*CONV_KERNEL_SIZE/WEIGHTS_PER_DATA; i ++) {
     tmp = strm_in.read();
     weights[i] = tmp.data;
-  }
-
-  loop_bias:
-  for(int i = 0; i < CONV_OFM_NUMBER/BIAS_PER_DATA; i ++) {
-    tmp = strm_in.read();
-    bias[i] = tmp.data;
   }
 
   output_t maxpool[POOL_OUTPUT_WIDTH];
