@@ -8,16 +8,17 @@
 #include "gemm.h"
 
 /* ============================= START OF RUN CONFIGURATION ============================ */
-//#define EMBEDDED                         /* uncomment to run in Zynq */
+#define EMBEDDED                         /* uncomment to run in Zynq */
 //#define USE_GEMM                         /* uncomment to use GEMM */
 //#define PRINT_IMAGE                      /* uncomment to print input images to console */
-//#define PRINT_TIME_PER_LAYER             /* uncomment to print elapsed time per layer on zynq */
+#define PRINT_TIME_PER_LAYER             /* uncomment to print elapsed time per layer on zynq */
 #define FIRST_IMAGE_TO_CLASSIFY 1        /* first image of the test set to classify */
 #define NUMBER_OF_IMAGES_TO_CLASSIFY 10  /* number of images to classify sequentially */
 /* ============================== END OF RUN CONFIGURATION ============================= */
 
 /* ============================ START OF MODEL CONFIGURATION =========================== */
 #define WEIGHTS_FILENAME "weights.bin"   /* file where the weights are stored */
+#define WEIGHTS_Q15_FILENAME "weightsq15.bin" /* file where the q15 weights are stored */
 #define CONV_KERNEL_SIZE 3               /* size of the convolution kernel */
 #define CONV_OFM_NUMBER 16               /* number of OFMs of convolutional layer */
 #define POOL_KERNEL_SIZE 2               /* size of pooling kernel */
@@ -106,8 +107,9 @@
     MEM_MAT_SOFT_M
 
 #ifdef EMBEDDED
-#include "xtime_l.h"
+#include "xiltimer.h"
 #define MEM_BASE_ADDR 0x10000000
+#define MEM_HW_BASE_ADDR 0x20000000
 #else
 static unsigned char mem_array[MEM_TOTAL_RESERVED];
 #define MEM_BASE_ADDR mem_array
@@ -125,7 +127,7 @@ void init_memory();
  * Executes all layers of the CNN sequentially and returns the predicted class for a given sample.
  * @return Predicted class for a given sample
  */
-int predict_class();
+int predict_class_sw();
 
 /**
  * Computes auxiliary matrix to perform convolution as matrix multiplication using GEMM kernel.
@@ -183,7 +185,7 @@ void forward_connected_layer();
  * and returns most likely class which corresponds to position of the largest value.
  * @return Position of the largest value in matConnB
  */
-int forward_softmax_layer();
+int forward_softmax_layer(float* A, float* B);
 
 /**
  * Prints first n elements of floating-point matrix for debug purposes.
@@ -200,6 +202,10 @@ void print_fp(float *matrix, int n, char *description);
  * @param cols Number of columns
  */
 void print_fp_mat(float *matrix, int rows, int cols);
+
+void forward_convolutional_layer_hw();
+
+void forward_connected_layer_int();
 
 #ifdef EMBEDDED
 /**

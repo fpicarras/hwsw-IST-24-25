@@ -1,6 +1,8 @@
 #ifndef __GEMM_H__
 #define __GEMM_H__
 
+#include <stdint.h>
+
 /**
  * Computes matrix multiplication using the GEMM kernel.
  * @param A Gathered matrix A
@@ -11,6 +13,18 @@
  * @param colsB Columns of matrix B
  */
 void gemm(const float *A, const float *B, float *C, int rowsA, int colsA, int colsB);
+
+/**
+ * Computes matrix multiplication using the GEMM kernel and sums with a bias.
+ * @param A Gathered matrix A
+ * @param B Matrix B
+ * @param bias Bias
+ * @param C Output matrix
+ * @param rowsA Rows of matrix A
+ * @param colsA Columns of matrix A
+ * @param colsB Columns of matrix B
+ */
+void gemmBias(const int16_t *A, const int16_t *B, const int16_t* bias, float *C, int rowsA, int colsA, int colsB);
 
 /**
  * Computes matrix multiplication using the GEMM kernel with second matrix transposed.

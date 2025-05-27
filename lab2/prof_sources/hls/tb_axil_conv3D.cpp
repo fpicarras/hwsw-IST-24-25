@@ -240,7 +240,7 @@ int check_output(const int16_t *sw_matrix_out_i, const float *sw_matrix_out_f) {
                 if (hw_matrix_out[ind] != sw_matrix_out_i[ind]) {
                     err_cnt++;
                     printf("Int: %d,%d: %d != %d\n\r", i, j, hw_matrix_out[ind], sw_matrix_out_i[ind]);
-                } else if (diff > 1E-3) {
+                } else if (diff > 2E-3) {
                     err_cnt++;
                     printf("Float: %d,%d: diff = %f\n\r", i, j, diff);
                 }

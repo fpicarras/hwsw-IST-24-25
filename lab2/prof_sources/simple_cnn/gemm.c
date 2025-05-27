@@ -6,6 +6,8 @@
  *
  * Contains routines related with General Matrix Multiplication kernel.
  */
+#include "gemm.h"
+#include "utils.h"
 
 void gemm(const float *A, const float *B, float *C, int rowsA, int colsA, int colsB) {
     for (int i = 0; i < rowsA; i++)
@@ -13,6 +15,15 @@ void gemm(const float *A, const float *B, float *C, int rowsA, int colsA, int co
             C[i * colsB + j] = 0;
             for (int k = 0; k < colsA; k++)
                 C[i * colsB + j] += A[i * colsA + k] * B[k * colsB + j];
+        }
+}
+
+void gemmBias(const int16_t *A, const int16_t *B, const int16_t* bias, float *C, int rowsA, int colsA, int colsB) {
+    for (int i = 0; i < rowsA; i++)
+        for (int j = 0; j < colsB; j++) {
+            C[i * colsB + j] = fixed2float(bias[i], 15);
+            for (int k = 0; k < colsA; k++)
+                C[i * colsB + j] += fixed2float(A[i * colsA + k], 15) * fixed2float(B[k * colsB + j], 15);
         }
 }
 

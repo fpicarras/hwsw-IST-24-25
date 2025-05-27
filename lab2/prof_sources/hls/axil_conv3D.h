@@ -9,7 +9,7 @@
 /* ========================== START OF TEST SET CONFIGURATION ========================== */
 
 #define N_IMAGES 1                 /* number of images in the binary file */
-#define IMAGE_HEIGHT 6              /* width of the images */
+#define IMAGE_HEIGHT 88              /* width of the images */
 #define IMAGE_WIDTH IMAGE_HEIGHT     /* height of the images */
 #define IMAGE_CHANNELS 3             /* number of channels (red + green + blue) */
 #define N_CLASSES 10                 /* number of possible classes */
@@ -19,7 +19,7 @@
 
 /* ============================ START OF MODEL CONFIGURATION =========================== */
 #define CONV_KERNEL_SIZE 3               /* size of the convolution kernel */
-#define CONV_OFM_NUMBER 2               /* number of OFMs of convolutional layer */
+#define CONV_OFM_NUMBER 16               /* number of OFMs of convolutional layer */
 #define POOL_KERNEL_SIZE 2               /* size of pooling kernel */
 #define POOL_STRIDE 2                    /* stride of pooling operation */
 /* ============================== END OF RUN CONFIGURATION ============================= */

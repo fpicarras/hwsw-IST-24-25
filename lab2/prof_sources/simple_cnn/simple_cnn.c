@@ -17,9 +17,13 @@
  */
 
 #include <stdio.h>
+#include <stdint.h>
 
 #include "simple_cnn.h"
 #include "image.h"
+#ifdef EMBEDDED
+#include "xaxidma.h"
+#endif
 
 volatile unsigned char *ch_images; /* images data region */
 volatile float *fp_params;         /* network parameters data region */
@@ -32,6 +36,12 @@ volatile float *matCpool;          /* output of pooling layer */
 volatile float *matConn;           /* output of fully connected layer before adding bias */
 volatile float *matConnB;          /* output of fully connected layer after adding bias */
 volatile float *matSoftM;          /* output of softmax layer */
+
+volatile unsigned char *image_in_c; /* images data region */
+volatile int16_t *int_params;
+volatile int16_t *matConvPool;
+volatile float *matGemm;
+volatile float *matSoftMax;
 
 void init_memory() {
     /* Check if memory reserved for loading files is enough */
@@ -51,6 +61,11 @@ void init_memory() {
     matConnB = (float *) ((unsigned char *) matConn + MEM_MAT_CONN);
     matSoftM = (float *) ((unsigned char *) matConnB + MEM_MAT_CONN_B);
 
+    int_params = (int16_t*) (MEM_HW_BASE_ADDR);
+    matConvPool = (int16_t*) ((unsigned char *) int_params + MEM_BIN_PARAMS);
+    matGemm = (float*) ((unsigned char*) matConvPool + MEM_MAT_C_POOL);
+    matSoftMax = (float*) ((unsigned char*) matSoftMax + MEM_MAT_CONN);
+
     /* Load images and weights from files if running in PC */
 #ifndef EMBEDDED
     FILE *weights_file = fopen(WEIGHTS_FILENAME, "rb");
@@ -58,6 +73,14 @@ void init_memory() {
     fread((float *) fp_params,
           TOTAL_PARAMS,
           sizeof(float),
+          weights_file);
+    fclose(weights_file);
+
+    weights_file = fopen(WEIGHTS_Q15_FILENAME, "rb");
+    assert(weights_file);
+    fread((int16_t *) int_params,
+          TOTAL_PARAMS,
+          sizeof(int16_t),
           weights_file);
     fclose(weights_file);
 
@@ -71,7 +94,33 @@ void init_memory() {
 #endif // EMBEDDED
 }
 
-int predict_class() {
+int predict_class_sw_hw() {
+#if defined(EMBEDDED) && defined(PRINT_TIME_PER_LAYER)
+    double t_start = xilGetMilliseconds();
+#endif
+    forward_convolutional_layer_hw();
+#if defined(EMBEDDED) && defined(PRINT_TIME_PER_LAYER)
+    double t_conv = xilGetMilliseconds();
+#endif
+    forward_connected_layer_int();
+#if defined(EMBEDDED) && defined(PRINT_TIME_PER_LAYER)
+    double t_conn = xilGetMilliseconds();
+#endif
+    int predicted_class = forward_softmax_layer((float * ) matGemm, (float*) matSoftMax);
+#if defined(EMBEDDED) && defined(PRINT_TIME_PER_LAYER)
+    double t_end = xilGetMilliseconds();
+#endif
+
+#if defined(EMBEDDED) && defined(PRINT_TIME_PER_LAYER)
+    printf("SW-HW Layer 1 (Convolutional+Pooling) took %.0f ms.\n\r", t_conv - t_start);
+    printf("SW-HW Layer 3 (Fully-Connected) took %.0f ms.\n\r", t_conn - t_conv);
+    printf("SW-HW Layer 4 (Soft-max) took %.3f ms.\n\r", t_end - t_conn);
+    printf("SW-HW Prediction took %.3f ms.\n\r", t_end - t_start);
+#endif // PRINT_TIME_PER_LAYER
+    return predicted_class;
+}
+
+int predict_class_sw() {
 #if defined(EMBEDDED) && defined(PRINT_TIME_PER_LAYER)
     double t_start = xilGetMilliseconds();
 #endif
@@ -87,16 +136,17 @@ int predict_class() {
 #if defined(EMBEDDED) && defined(PRINT_TIME_PER_LAYER)
     double t_conn = xilGetMilliseconds();
 #endif
-    int predicted_class = forward_softmax_layer();
+    int predicted_class = forward_softmax_layer((float*) matConnB, (float*) matSoftM);
 #if defined(EMBEDDED) && defined(PRINT_TIME_PER_LAYER)
     double t_end = xilGetMilliseconds();
 #endif
 
 #if defined(EMBEDDED) && defined(PRINT_TIME_PER_LAYER)
-    printf("Layer 1 (Convolutional) took %.0f ms.\n\r", t_conv - t_start);
-    printf("Layer 2 (Pooling) took %.0f ms.\n\r", t_pool - t_conv);
-    printf("Layer 3 (Fully-Connected) took %.0f ms.\n\r", t_conn - t_pool);
-    printf("Layer 4 (Soft-max) took %.3f ms.\n\r", t_end - t_conn);
+    printf("SW Layer 1 (Convolutional) took %.0f ms.\n\r", t_conv - t_start);
+    printf("SW Layer 2 (Pooling) took %.0f ms.\n\r", t_pool - t_conv);
+    printf("SW Layer 3 (Fully-Connected) took %.0f ms.\n\r", t_conn - t_pool);
+    printf("SW Layer 4 (Soft-max) took %.3f ms.\n\r", t_end - t_conn);
+    printf("SW Prediction took %.3f ms.\n\r", t_end - t_start);
 #endif // PRINT_TIME_PER_LAYER
     return predicted_class;
 }
@@ -200,6 +250,30 @@ void forward_convolutional_layer() {
          (float *) matCrelu);
 }
 
+void forward_convolutional_layer_hw() {
+    // Initialize DMA
+    XAxiDma dma;
+    XAxiDma_Config *cfg_dma;
+    cfg_dma = XAxiDma_LookupConfig(0x40400000);
+    XAxiDma_CfgInitialize(&dma, cfg_dma);
+
+    XAxiDma_IntrDisable(&dma, XAXIDMA_IRQ_ALL_MASK, XAXIDMA_DEVICE_TO_DMA);
+    XAxiDma_IntrDisable(&dma, XAXIDMA_IRQ_ALL_MASK, XAXIDMA_DMA_TO_DEVICE);
+
+    // Set Inputs on all channels
+    XAxiDma_SimpleTransfer(&dma, (UINTPTR) image_in_c, IMAGE_SIZE, XAXIDMA_DMA_TO_DEVICE);
+
+    XAxiDma_SimpleTransfer(&dma, (UINTPTR) matConvPool, sizeof(int16_t)*CONV_OFM_NUMBER*POOL_OUTPUT_HEIGHT*POOL_OUTPUT_WIDTH, XAXIDMA_DEVICE_TO_DMA);
+
+    while (XAxiDma_Busy(&dma,XAXIDMA_DMA_TO_DEVICE));
+
+    XAxiDma_SimpleTransfer(&dma, (UINTPTR) int_params, CONV_LAYER_WEIGHTS + CONV_LAYER_BIASES, XAXIDMA_DMA_TO_DEVICE);
+
+    while (XAxiDma_Busy(&dma,XAXIDMA_DEVICE_TO_DMA));
+
+    Xil_DCacheInvalidateRange((UINTPTR) matConvPool, sizeof(int16_t)*CONV_OFM_NUMBER*POOL_OUTPUT_HEIGHT*POOL_OUTPUT_WIDTH);
+}
+
 void forward_max_pool_layer() {
     for (int i = 0; i < POOL_OUTPUT_HEIGHT; i++)
         for (int j = 0; j < POOL_OUTPUT_WIDTH; j++)
@@ -250,24 +324,43 @@ void forward_connected_layer() {
              (float *) matConnB);
 }
 
-int forward_softmax_layer() {
+void forward_connected_layer_int() {
+    int16_t *mbias =
+            (int16_t *) int_params +
+            CONV_OFM_NUMBER +
+            IMAGE_CHANNELS * CONV_OFM_NUMBER * CONV_KERNEL_SIZE * CONV_KERNEL_SIZE;
+
+    int16_t *matW =
+            (int16_t *) mbias +
+            N_CLASSES;
+
+    gemmBias(matW,
+         (int16_t *) matConvPool,
+         mbias,
+         (float *) matGemm,
+         N_CLASSES,
+         POOL_OUTPUT_HEIGHT * POOL_OUTPUT_WIDTH * CONV_OFM_NUMBER,
+         1);
+}
+
+int forward_softmax_layer(float* A, float* B) {
     int best = 0;
     float sum = 0;
 
     /* Determine the most likely class */
     for (int i = 0; i < N_CLASSES; i++)
-        if (matConnB[i] > matConnB[best])
+        if (A[i] > A[best])
             best = i;
 
     /* Exponential */
     for (int i = 0; i < N_CLASSES; i++) {
-        matSoftM[i] = exp(matConnB[i] - matConnB[best]);
-        sum += matSoftM[i];
+        B[i] = exp(A[i] - A[best]);
+        sum += B[i];
     }
 
     /* Normalize */
     for (int i = 0; i < N_CLASSES; i++)
-        matSoftM[i] /= sum;
+        B[i] /= sum;
 
     return best;
 }
@@ -301,14 +394,14 @@ double xilGetMilliseconds() {
 }
 #endif // EMBEDDED
 
-int main(int argc, char **argv) {
+int main() {
     /* Performs memory assignment */
     init_memory();
 
     /* Classify first NUMBER_OF_IMAGES_TO_CLASSIFY from the dataset */
     for (int i = FIRST_IMAGE_TO_CLASSIFY - 1; i < FIRST_IMAGE_TO_CLASSIFY + NUMBER_OF_IMAGES_TO_CLASSIFY - 1; i++) {
         unsigned char *image_in = (unsigned char *) ch_images + i * IMAGE_SIZE;
-
+        image_in_c = image_in;
         /* normalize to [-1, 1] */
         normalize_image((unsigned char *) image_in, (float *) fp_image);
 
@@ -316,7 +409,9 @@ int main(int argc, char **argv) {
         print_ppm(image_in);
 #endif // PRINT_IMAGE
 
-        int prediction = predict_class();
+        predict_class_sw();
+
+        int prediction = predict_class_sw_hw();
 
         printf("# Image %03d -> Class=%d (%8s) %3.0f%% [ ",
                i + 1, prediction,
