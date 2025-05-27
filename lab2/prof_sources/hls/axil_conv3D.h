@@ -61,6 +61,8 @@ typedef hls::axis<data_t, 0, 0, 0> strmio_t;
 #define BIAS_PER_DATA (DATA_BIT_WIDTH/BIAS_BIT_WIDTH)
 #define OUTPUTS_PER_DATA (DATA_BIT_WIDTH/OUTPUT_BIT_WIDTH)
 #define IMAGE_SIZE IMAGE_HEIGHT * IMAGE_WIDTH * IMAGE_CHANNELS
+#define HW_MATRIX_OUT_HEIGHT POOL_OUTPUT_HEIGHT
+#define HW_MATRIX_OUT_WIDTH POOL_OUTPUT_WIDTH
 
 void axil_conv3D(hls::stream<strmio_t> &strm_in,
                  hls::stream<strmio_t> &strm_out);
