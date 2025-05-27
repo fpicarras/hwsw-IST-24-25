@@ -251,9 +251,10 @@ int check_output(const int16_t *sw_matrix_out_i, const float *sw_matrix_out_f) {
 
 int main() {
     init_inputs();
-    hls::stream<strmio_t> str_in;
-    hls::stream<strmio_t> str_out;
-    strmio_t tmp_in, tmp_out;
+    hls::stream<strmin_t> str_in;
+    hls::stream<strmout_t> str_out;
+    strmin_t tmp_in;
+    strmout_t tmp_out;
     for (int i = 0; i < IMAGE_CHANNELS*IMAGE_HEIGHT*IMAGE_WIDTH; i+=4) {
         tmp_in.data(7, 0) = image_in_i[i];
         tmp_in.data(15, 8) = image_in_i[i + 1];
@@ -275,10 +276,9 @@ int main() {
         str_in.write(tmp_in);
     }
     axil_conv3D(str_in, str_out);
-    for (int i = 0; i < CONV_OFM_NUMBER*HW_MATRIX_OUT_HEIGHT*HW_MATRIX_OUT_WIDTH; i+=2) {
+    for (int i = 0; i < CONV_OFM_NUMBER*HW_MATRIX_OUT_HEIGHT*HW_MATRIX_OUT_WIDTH; i++) {
         tmp_out = str_out.read();
-        hw_matrix_out[i] = tmp_out.data(15, 0);
-        hw_matrix_out[i + 1] = tmp_out.data(31, 16);
+        hw_matrix_out[i] = tmp_out.data;
     }
     int err_cnt = 0;
 

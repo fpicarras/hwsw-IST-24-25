@@ -39,7 +39,8 @@ typedef ap_int<WEIGHT_BIT_WIDTH> weight_t;
 typedef ap_int<BIAS_BIT_WIDTH> bias_t;
 typedef ap_int<OUTPUT_BIT_WIDTH> output_t;
 typedef ap_int<ACCUM_BIT_WIDTH> accum_t;
-typedef hls::axis<data_t, 0, 0, 0> strmio_t;
+typedef hls::axis<data_t, 0, 0, 0> strmin_t;
+typedef hls::axis<output_t, 0, 0, 0> strmout_t;
 /* ============================== PL DATA CONFIGURATION ============================= */
 
 /* =====================================================================================
@@ -64,6 +65,6 @@ typedef hls::axis<data_t, 0, 0, 0> strmio_t;
 #define HW_MATRIX_OUT_HEIGHT POOL_OUTPUT_HEIGHT
 #define HW_MATRIX_OUT_WIDTH POOL_OUTPUT_WIDTH
 
-void axil_conv3D(hls::stream<strmio_t> &strm_in,
-                 hls::stream<strmio_t> &strm_out);
+void axil_conv3D(hls::stream<strmin_t> &strm_in,
+                 hls::stream<strmout_t> &strm_out);
 #endif // __AXIL_CNN_H__

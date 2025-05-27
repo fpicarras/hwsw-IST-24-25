@@ -1,8 +1,8 @@
 
 #include "axil_conv3D.h"
 
-void axil_conv3D(hls::stream<strmio_t> &strm_in,
-                 hls::stream<strmio_t> &strm_out) {
+void axil_conv3D(hls::stream<strmin_t> &strm_in,
+                 hls::stream<strmout_t> &strm_out) {
 
 #pragma HLS INTERFACE ap_ctrl_none port=return
 #pragma HLS interface axis port=strm_in
@@ -14,7 +14,7 @@ static data_t image_blue[IMAGE_HEIGHT*IMAGE_WIDTH/IMAGES_PER_DATA];
 static data_t weights[IMAGE_CHANNELS*CONV_OFM_NUMBER*CONV_KERNEL_SIZE*CONV_KERNEL_SIZE/WEIGHTS_PER_DATA];
 static data_t bias[CONV_OFM_NUMBER/BIAS_PER_DATA];
 
-  strmio_t tmp;
+  strmin_t tmp;
   /* Input Image Stream */
   loop_red: 
   for(int i = 0; i < IMAGE_HEIGHT*IMAGE_WIDTH/IMAGES_PER_DATA; i ++) {
@@ -45,7 +45,7 @@ static data_t bias[CONV_OFM_NUMBER/BIAS_PER_DATA];
     bias[i] = tmp.data;
   }
 
-  output_t maxpool[CONV_OUTPUT_WIDTH/2];
+  output_t maxpool[POOL_OUTPUT_WIDTH];
   loop_conv:
   for(int l = 0; l < CONV_OFM_NUMBER; l++) {
     loop_i:
@@ -107,11 +107,10 @@ static data_t bias[CONV_OFM_NUMBER/BIAS_PER_DATA];
           maxpool[maxpool_ind] = acc_sat;
         }
 
-        if((j & 0x3) == 0x3 && (i & 0x1) == 0x1) {
-          strmio_t chunk_out;
+        if((j & 0x1) == 0x1 && (i & 0x1) == 0x1) {
+          strmout_t chunk_out;
           chunk_out.last = ((i == CONV_OUTPUT_HEIGHT - 1) && (j == CONV_OUTPUT_WIDTH - 1) && (l == CONV_OFM_NUMBER - 1));
-          chunk_out.data(15,0) = maxpool[(j & (~0x3)) >> 1];
-          chunk_out.data(31,16) = maxpool[maxpool_ind];
+          chunk_out.data = maxpool[maxpool_ind];
           chunk_out.keep = 0xF;
           chunk_out.strb = 0xF;
           strm_out.write(chunk_out);
