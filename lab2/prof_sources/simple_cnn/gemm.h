@@ -58,4 +58,22 @@ void gemmBTCT(const float *A, const float *BT, float *CT, int rowsA, int colsA, 
  */
 void transpose(const float *C, int rows, int cols, float *CT);
 
+/**
+ * Adds bias to all elements of the input matrix.
+ * @param C Input matrix
+ * @param rows Rows of input matrix
+ * @param cols Columns of input matrix
+ * @param bias Bias
+ * @param Cbias Output matrix
+ */
+void add_bias(const float *C, int rows, int cols, const float *bias, float *Cbias);
+
+/**
+ * Applies ReLU to elements of input matrix.
+ * @param C Input matrix
+ * @param size Size of input matrix
+ * @param Crl Output matrix
+ */
+void ReLU(const float *C, int size, float *Crl);
+
 #endif // __GEMM_H__

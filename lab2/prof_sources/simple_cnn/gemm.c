@@ -56,3 +56,14 @@ void transpose(const float *C, int rows, int cols, float *CT) {
         for (int j = 0; j < cols; j++)
             CT[j * rows + i] = C[i * cols + j];
 }
+
+void add_bias(const float *C, int rows, int cols, const float *bias, float *Cbias) {
+    for (int i = 0; i < rows; i++)
+        for (int j = 0; j < cols; j++)
+            Cbias[i * cols + j] = C[i * cols + j] + bias[i];
+}
+
+void ReLU(const float *C, int size, float *Crl) {
+    for (int i = 0; i < size; i++)
+        Crl[i] = C[i] < 0 ? 0 : C[i];
+}
