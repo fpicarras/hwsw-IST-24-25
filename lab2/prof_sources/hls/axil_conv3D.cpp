@@ -45,7 +45,7 @@ static data_t bias[CONV_OFM_NUMBER/BIAS_PER_DATA];
     bias[i] = tmp.data;
   }
 
-  output_t conv [OUTPUTS_PER_DATA];
+  output_t maxpool[CONV_OUTPUT_WIDTH/2];
   loop_conv:
   for(int l = 0; l < CONV_OFM_NUMBER; l++) {
     loop_i:
@@ -95,20 +95,23 @@ static data_t bias[CONV_OFM_NUMBER/BIAS_PER_DATA];
         accum_t acc = acc_r + acc_g + acc_b + ((accum_t)bia << (ACCUM_BIT_WIDTH - INTEGER_BIT_WIDTH - WEIGHT_BIT_WIDTH));
 
         acc = acc >> (ACCUM_BIT_WIDTH - OUTPUT_BIT_WIDTH);
-        /* Normalize */
+        /* Relu */
         if (acc < 0)
           acc_sat = 0;
         else
           acc_sat = acc;
 
-        int ind_out = (i * CONV_OUTPUT_WIDTH + j) & 0x1;
-        conv[ind_out] = acc_sat;
+         /* Maxpool */
+        int maxpool_ind = j >> 1;
+        if(((i & 0x1) == 0 && (j & 0x1) == 0) || (maxpool[maxpool_ind] < acc_sat)) {
+          maxpool[maxpool_ind] = acc_sat;
+        }
 
-        if(ind_out == 0x1) {
+        if((j & 0x3) == 0x3 && (i & 0x1) == 0x1) {
           strmio_t chunk_out;
           chunk_out.last = ((i == CONV_OUTPUT_HEIGHT - 1) && (j == CONV_OUTPUT_WIDTH - 1) && (l == CONV_OFM_NUMBER - 1));
-          chunk_out.data(15,0) = conv[0];
-          chunk_out.data(31,16) = conv[1];
+          chunk_out.data(15,0) = maxpool[(j & (~0x3)) >> 1];
+          chunk_out.data(31,16) = maxpool[maxpool_ind];
           chunk_out.keep = 0xF;
           chunk_out.strb = 0xF;
           strm_out.write(chunk_out);
