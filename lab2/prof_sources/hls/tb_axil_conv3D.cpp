@@ -2,8 +2,6 @@
 #include "axil_conv3D.h"
 #include <stdint.h>
 
-#define __TB_INT__
-
 #define FLT_MAX 3.402823466e+38F
 
 static int8_t image_in[IMAGE_CHANNELS * IMAGE_HEIGHT * IMAGE_WIDTH];
@@ -149,27 +147,27 @@ void forward_max_pool_layer_f() {
 int check_output_f(const float *sw_matrix_out, const int16_t *hw_matrix_out) {
     printf("Output Image SW\n\r");
     for(int k = 0; k < CONV_OFM_NUMBER; k ++)
-        for (int i = 0; i < CONV_OUTPUT_HEIGHT/2; i++) {
-            for (int j = 0; j < CONV_OUTPUT_WIDTH/2; j++) {
-                printf("%f ", sw_matrix_out[k * CONV_OUTPUT_HEIGHT * CONV_OUTPUT_WIDTH + i * CONV_OUTPUT_WIDTH + j]);
+        for (int i = 0; i < POOL_OUTPUT_HEIGHT; i++) {
+            for (int j = 0; j < POOL_OUTPUT_WIDTH; j++) {
+                printf("%f ", sw_matrix_out[k * POOL_OUTPUT_HEIGHT * POOL_OUTPUT_WIDTH + i * POOL_OUTPUT_WIDTH + j]);
             }
             printf("\n\r");
         }
 
     printf("Output Image HW\n\r");
     for(int k = 0; k < CONV_OFM_NUMBER; k ++)
-        for (int i = 0; i < CONV_OUTPUT_HEIGHT/2; i++) {
-            for (int j = 0; j < CONV_OUTPUT_WIDTH/2; j++) {
-                printf("%f ", fixed2float(hw_matrix_out[k * CONV_OUTPUT_HEIGHT * CONV_OUTPUT_WIDTH + i * CONV_OUTPUT_WIDTH + j], OUTPUT_BIT_WIDTH - INTEGER_BIT_WIDTH - 1));
+        for (int i = 0; i < POOL_OUTPUT_HEIGHT; i++) {
+            for (int j = 0; j < POOL_OUTPUT_WIDTH; j++) {
+                printf("%f ", fixed2float(hw_matrix_out[k * POOL_OUTPUT_HEIGHT * POOL_OUTPUT_WIDTH + i * POOL_OUTPUT_WIDTH + j], OUTPUT_BIT_WIDTH - INTEGER_BIT_WIDTH - 1));
             }
             printf("\n\r");
         }
 
     int err_cnt = 0;
     for(int k = 0; k < CONV_OFM_NUMBER; k ++)
-        for (int i = 0; i < CONV_OUTPUT_HEIGHT/2; i++)
-            for (int j = 0; j < CONV_OUTPUT_WIDTH/2; j++) {
-                int ind = k * CONV_OUTPUT_HEIGHT * CONV_OUTPUT_WIDTH + i * CONV_OUTPUT_WIDTH + j;
+        for (int i = 0; i < POOL_OUTPUT_HEIGHT; i++)
+            for (int j = 0; j < POOL_OUTPUT_WIDTH; j++) {
+                int ind = k * POOL_OUTPUT_HEIGHT * POOL_OUTPUT_WIDTH + i * POOL_OUTPUT_WIDTH + j;
                 float diff = fixed2float(hw_matrix_out[ind], (OUTPUT_BIT_WIDTH - INTEGER_BIT_WIDTH - 1)) - sw_matrix_out[ind];
                 diff = diff > 0 ? diff : -diff;
                 if (diff > 1E-3) {
@@ -343,14 +341,6 @@ int main() {
 
 #ifdef __TB_INT__
     sw_convolution_3D(image_in, kernel, bias, sw_image_out);
-    printf("Output Image SW\n\r");
-    for(int k = 0; k < CONV_OFM_NUMBER; k ++)
-        for (int i = 0; i < CONV_OUTPUT_HEIGHT; i++) {
-            for (int j = 0; j < CONV_OUTPUT_WIDTH; j++) {
-                printf("%4d ", sw_image_out[k * CONV_OUTPUT_HEIGHT * CONV_OUTPUT_WIDTH + i * CONV_OUTPUT_WIDTH + j]);
-            }
-            printf("\n\r");
-        }
     forward_max_pool_layer();
 #else
     sw_convolution_3D_f();
