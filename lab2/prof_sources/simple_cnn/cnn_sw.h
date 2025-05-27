@@ -38,18 +38,18 @@ void forward_convolutional_layer(const float * fp_params, const float * image, f
 /**
  * Executes pooling layer on output of convolutional layer.
  */
-void forward_max_pool_layer(const float* A, float *B)
+void forward_max_pool_layer(const float* A, float *B);
 
 /**
  * Executes fully-connected layer on output of max pooling layer.
  */
-void forward_connected_layer(const float * X, const float * W, const float * b, float * Y);
+void forward_connected_layer(const float * X, const float * fp_params, float * Y);
 
 /**
  * Executes softmax operation on output of fully-connected layer to normalize it to a probability distribution
  * and returns most likely class which corresponds to position of the largest value.
  * @return Position of the largest value in matConnB
  */
-int forward_softmax_layer(float* A, float* B);
+int forward_softmax_layer(const float* A, float* B);
 
 #endif // __CNN_SW_H__

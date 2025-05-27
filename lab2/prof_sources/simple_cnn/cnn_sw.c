@@ -1,6 +1,9 @@
 
 #include "cnn_sw.h"
 #include "app_params.h"
+#include "utils.h"
+#include "gemm.h"
+#include <math.h>
 
 void compute_matrixA(const float* image, float * A) {
     for (int i = 0; i < CONV_OUTPUT_HEIGHT; i++)

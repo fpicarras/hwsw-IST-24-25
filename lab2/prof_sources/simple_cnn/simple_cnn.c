@@ -17,7 +17,6 @@
  */
 
 #include <stdio.h>
-#include <stdint.h>
 
 #include "simple_cnn.h"
 #include "cnn_sw.h"
@@ -91,17 +90,17 @@ int main() {
         print_ppm(image_in);
 #endif // PRINT_IMAGE
 
-        predict_class_sw(image_in, &addr);
+        int prediction = predict_class_sw((float*) addr.fp_image, &addr);
 
         // int prediction = predict_class_sw_hw();
 
         printf("# Image %03d -> Class=%d (%8s) %3.0f%% [ ",
                i + 1, prediction,
                image_class[prediction],
-               matSoftM[prediction] * 100);
+               addr.matSoftM[prediction] * 100);
 
         for (int i = 0; i < N_CLASSES; i++)
-            printf("%3.0f%% ", matSoftM[i] * 100);
+            printf("%3.0f%% ", addr.matSoftM[i] * 100);
 
         printf(prediction == i % N_CLASSES ? "] OK\n\r" : "] Prediction Error\n\r");
     }

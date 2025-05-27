@@ -86,6 +86,6 @@ static unsigned char mem_array[MEM_TOTAL_RESERVED];
 /**
  * Assigns memory regions to required data.
  */
-void init_memory();
+void init_memory(addresses * addr) ;
 
 #endif // __SIMPLE_CNN__
