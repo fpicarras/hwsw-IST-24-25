@@ -36,7 +36,6 @@
 #define FC_LAYER_WEIGHTS POOL_OUTPUT_WIDTH * POOL_OUTPUT_HEIGHT * CONV_OFM_NUMBER * N_CLASSES
 #define FC_LAYER_BIASES N_CLASSES
 #define TOTAL_PARAMS (CONV_LAYER_WEIGHTS + CONV_LAYER_BIASES + FC_LAYER_WEIGHTS + FC_LAYER_BIASES)
-#define IMAGE_SIZE IMAGE_HEIGHT * IMAGE_WIDTH * IMAGE_CHANNELS
 #define CONV_OUTPUT_SIZE CONV_OUTPUT_HEIGHT * CONV_OUTPUT_WIDTH * CONV_OFM_NUMBER
 #define POOL_OUTPUT_SIZE POOL_OUTPUT_HEIGHT * POOL_OUTPUT_WIDTH * CONV_OFM_NUMBER
 #define HW_MATRIX_OUT_HEIGHT POOL_OUTPUT_HEIGHT
@@ -58,7 +57,6 @@ typedef struct addresses
   volatile float *matConn;           /* output of fully connected layer before adding bias */
   volatile float *matConnB;          /* output of fully connected layer after adding bias */
   volatile float *matSoftM;          /* output of softmax layer */
-  volatile unsigned char *image_in_c; /* images data region */
   volatile int16_t *int_params;
   volatile int16_t *matConvPool;
   volatile float *matGemm;

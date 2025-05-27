@@ -20,9 +20,13 @@
 
 #include "simple_cnn.h"
 #include "cnn_sw.h"
+#include "cnn_hw_sw.h"
 #ifdef EMBEDDED
 #include "xaxidma.h"
 #endif
+
+static char image_class[10][9] = {"Airplane", "Bird", "Car", "Cat", "Deer", "Dog",
+                                  "Horse", "Monkey", "Ship", "Truck"};
 
 void init_memory(addresses * addr) {
     /* Check if memory reserved for loading files is enough */
@@ -90,9 +94,9 @@ int main() {
         print_ppm(image_in);
 #endif // PRINT_IMAGE
 
-        int prediction = predict_class_sw((float*) addr.fp_image, &addr);
+        predict_class_sw((float*) addr.fp_image, &addr);
 
-        // int prediction = predict_class_sw_hw();
+        int prediction = predict_class_sw_hw((int8_t *) image_in, &addr);
 
         printf("# Image %03d -> Class=%d (%8s) %3.0f%% [ ",
                i + 1, prediction,

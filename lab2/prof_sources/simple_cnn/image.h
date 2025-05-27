@@ -12,9 +12,6 @@
 #define IMAGE_CHANNELS 3             /* number of channels (red + green + blue) */
 #define N_CLASSES 10                 /* number of possible classes */
 
-static char image_class[10][9] = {"Airplane", "Bird", "Car", "Cat", "Deer", "Dog",
-                                  "Horse", "Monkey", "Ship", "Truck"};
-
 /* =========================== END OF TEST SET CONFIGURATION =========================== */
 
 #define IMAGE_SIZE (IMAGE_HEIGHT * IMAGE_WIDTH * IMAGE_CHANNELS)
