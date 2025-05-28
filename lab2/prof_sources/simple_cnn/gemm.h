@@ -24,7 +24,7 @@ void gemm(const float *A, const float *B, float *C, int rowsA, int colsA, int co
  * @param colsA Columns of matrix A
  * @param colsB Columns of matrix B
  */
-void gemmBias(const int16_t *A, const int16_t *B, const int16_t* bias, float *C, int rowsA, int colsA, int colsB);
+void gemmBias(const int16_t *A, const int32_t *B, const int16_t* bias, float *C, int rowsA, int colsA, int colsB);
 
 /**
  * Computes matrix multiplication using the GEMM kernel with second matrix transposed.

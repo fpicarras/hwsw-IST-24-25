@@ -58,7 +58,7 @@ typedef struct addresses
   volatile float *matConnB;          /* output of fully connected layer after adding bias */
   volatile float *matSoftM;          /* output of softmax layer */
   volatile int16_t *int_params;
-  volatile int16_t *matConvPool;
+  volatile int32_t *matConvPool;
   volatile float *matGemm;
   volatile float *matSoftMax;
   volatile int16_t *image_ip;

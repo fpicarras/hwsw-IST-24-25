@@ -17,11 +17,11 @@ int predict_class_sw_hw(const int16_t * image, addresses * addr);
 /**
  * Executes convolution + maxpool layer on input using the IP.
  */
-void forward_convolutional_layer_hw(const int16_t * image, const int16_t *int_params, volatile int16_t * matConvPool);
+void forward_convolutional_layer_hw(const int16_t * image, const int16_t *int_params, volatile int32_t * matConvPool);
 
 /**
  * Executes fully-connected layer on output of max pooling layer.
  */
-void forward_connected_layer_int(const int16_t *X, const int16_t * int_params, float * Y);
+void forward_connected_layer_int(const int32_t *X, const int16_t * int_params, float * Y);
 
 #endif // __CNN_SW_HW_H__

@@ -8,8 +8,8 @@ static int8_t image_in[IMAGE_SIZE];
 static int16_t image_in_i[IMAGE_SIZE];
 static int16_t kernel_i[CONV_LAYER_WEIGHTS];
 static int16_t bias_i[CONV_LAYER_BIASES];
-static int16_t image_out_i[CONV_OUTPUT_SIZE];
-static int16_t maxpool_i[POOL_OUTPUT_SIZE];
+static int32_t image_out_i[CONV_OUTPUT_SIZE];
+static int32_t maxpool_i[POOL_OUTPUT_SIZE];
 
 static float image_in_f[IMAGE_SIZE];
 static float kernel_f[CONV_LAYER_WEIGHTS];
@@ -17,7 +17,7 @@ static float bias_f[CONV_OFM_NUMBER];
 static float image_out_f[CONV_OUTPUT_SIZE];
 static float maxpool_f[POOL_OUTPUT_SIZE];
 
-static int16_t hw_matrix_out[HW_MATRIX_OUT_SIZE];
+static int32_t hw_matrix_out[HW_MATRIX_OUT_SIZE];
 
 int float2fixed(float f, int scale) {
     f = f * (float)(1 << scale);
@@ -217,7 +217,7 @@ void forward_max_pool_layer_i() {
             }
 }
 
-int check_output(const int16_t *sw_matrix_out_i, const float *sw_matrix_out_f) {
+int check_output(const int32_t *sw_matrix_out_i, const float *sw_matrix_out_f) {
     printf("SW Int Output Image\n\r");
     for(int k = 0; k < CONV_OFM_NUMBER; k ++)
         for (int i = 0; i < HW_MATRIX_OUT_HEIGHT; i++) {
@@ -255,7 +255,7 @@ int check_output(const int16_t *sw_matrix_out_i, const float *sw_matrix_out_f) {
                 if (hw_matrix_out[ind] != sw_matrix_out_i[ind]) {
                     err_cnt++;
                     // printf("Int: %d,%d: %d != %d\n\r", i, j, hw_matrix_out[ind], sw_matrix_out_i[ind]);
-                } else if (diff > 2E-3) {
+                } else if (diff > 6E-4) {
                     err_cnt++;
                     // printf("Float: %d,%d: diff = %f\n\r", i, j, diff);
                 }
