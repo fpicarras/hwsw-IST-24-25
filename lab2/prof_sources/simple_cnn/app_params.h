@@ -9,7 +9,7 @@
 #define EMBEDDED                         /* uncomment to run in Zynq */
 //#define USE_GEMM                         /* uncomment to use GEMM */
 //#define PRINT_IMAGE                      /* uncomment to print input images to console */
-#define PRINT_TIME_PER_LAYER             /* uncomment to print elapsed time per layer on zynq */
+// #define PRINT_TIME_PER_LAYER             /* uncomment to print elapsed time per layer on zynq */
 #define FIRST_IMAGE_TO_CLASSIFY 1        /* first image of the test set to classify */
 #define NUMBER_OF_IMAGES_TO_CLASSIFY 10  /* number of images to classify sequentially */
 /* ============================== END OF RUN CONFIGURATION ============================= */
@@ -61,6 +61,7 @@ typedef struct addresses
   volatile int16_t *matConvPool;
   volatile float *matGemm;
   volatile float *matSoftMax;
+  volatile unsigned char *image_ip;
 } addresses;
 
 

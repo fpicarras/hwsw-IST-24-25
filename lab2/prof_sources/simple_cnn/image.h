@@ -2,6 +2,7 @@
 #define __IMAGE_H__
 
 #include <stdio.h>
+#include <stdint.h>
 
 /* ========================== START OF TEST SET CONFIGURATION ========================== */
 
@@ -25,6 +26,8 @@
  * @param norm_image Flattened 3D matrix containing the normalized values of the pixels
  */
 void normalize_image(const unsigned char *rgb_image, float *norm_image);
+
+void image_to_ip(const float *norm_image, int8_t *image_ip);
 
 /**
  * Prints the input image to stdout in ppm format (see http://paulbourke.net/dataformats/ppm/).

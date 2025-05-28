@@ -280,7 +280,6 @@ int main() {
         tmp_out = str_out.read();
         hw_matrix_out[i] = tmp_out.data;
     }
-    int err_cnt = 0;
 
     sw_convolution_3D_i();
     forward_max_pool_layer_i();

@@ -1,6 +1,7 @@
 
 #include "cnn_hw_sw.h"
 #include "gemm.h"
+#include "image.h"
 #include "utils.h"
 #include "cnn_sw.h"
 
@@ -46,7 +47,8 @@ int predict_class_sw_hw(const int8_t * image, addresses * addr) {
     return predicted_class;
 }
 
-void forward_convolutional_layer_hw(const int8_t * image, const int16_t *int_params, volatile int16_t * matConvPool) {    
+void forward_convolutional_layer_hw(const int8_t * image, const int16_t *int_params, volatile int16_t * matConvPool) {  
+    Xil_DCacheFlushRange((INTPTR)image, IMAGE_SIZE);  
     // Initialize DMA
     XAxiDma dma;
     XAxiDma_Config *cfg_dma;
@@ -59,11 +61,13 @@ void forward_convolutional_layer_hw(const int8_t * image, const int16_t *int_par
     // Set Inputs on all channels
     XAxiDma_SimpleTransfer(&dma, (UINTPTR) image, IMAGE_SIZE, XAXIDMA_DMA_TO_DEVICE);
 
-    XAxiDma_SimpleTransfer(&dma, (UINTPTR) matConvPool, sizeof(int16_t)*HW_MATRIX_OUT_SIZE, XAXIDMA_DEVICE_TO_DMA);
-
     while (XAxiDma_Busy(&dma,XAXIDMA_DMA_TO_DEVICE));
 
     XAxiDma_SimpleTransfer(&dma, (UINTPTR) int_params, sizeof(int16_t)*(CONV_LAYER_WEIGHTS + CONV_LAYER_BIASES), XAXIDMA_DMA_TO_DEVICE);
+
+    while (XAxiDma_Busy(&dma,XAXIDMA_DMA_TO_DEVICE));
+
+    XAxiDma_SimpleTransfer(&dma, (UINTPTR) matConvPool, sizeof(int16_t)*HW_MATRIX_OUT_SIZE, XAXIDMA_DEVICE_TO_DMA);
 
     while (XAxiDma_Busy(&dma, XAXIDMA_DEVICE_TO_DMA));
 
