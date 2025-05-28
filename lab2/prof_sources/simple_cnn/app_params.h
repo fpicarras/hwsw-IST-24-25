@@ -61,7 +61,7 @@ typedef struct addresses
   volatile int16_t *matConvPool;
   volatile float *matGemm;
   volatile float *matSoftMax;
-  volatile unsigned char *image_ip;
+  volatile int16_t *image_ip;
 } addresses;
 
 

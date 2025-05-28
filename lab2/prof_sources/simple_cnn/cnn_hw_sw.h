@@ -12,12 +12,12 @@
  * Executes all layers of the CNN sequentially and returns the predicted class for a given sample.
  * @return Predicted class for a given sample
  */
-int predict_class_sw_hw(const int8_t * image, addresses * addr);
+int predict_class_sw_hw(const int16_t * image, addresses * addr);
 
 /**
  * Executes convolution + maxpool layer on input using the IP.
  */
-void forward_convolutional_layer_hw(const int8_t * image, const int16_t *int_params, volatile int16_t * matConvPool);
+void forward_convolutional_layer_hw(const int16_t * image, const int16_t *int_params, volatile int16_t * matConvPool);
 
 /**
  * Executes fully-connected layer on output of max pooling layer.

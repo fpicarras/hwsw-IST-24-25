@@ -16,9 +16,9 @@ void normalize_image(const unsigned char *rgb_image, float *norm_image) {
         norm_image[i] = ((float) rgb_image[i] / 255 - 0.5F) / 0.5F;
 }
 
-void image_to_ip(const float *norm_image, int8_t *image_ip) {
+void image_to_ip(const float *norm_image, int16_t *image_ip) {
     for (int i = 0; i < IMAGE_SIZE; i++)
-        image_ip[i] = float2fixed(norm_image[i], 7);
+        image_ip[i] = float2fixed(norm_image[i], 15);
 }
 
 void print_ppm(unsigned char *rgb_image) {

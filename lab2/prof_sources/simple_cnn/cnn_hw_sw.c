@@ -20,7 +20,7 @@ void check_output(const int16_t *hw_matrix_out, const float *sw_matrix_out) {
     printf("Number of errors: %d\n", err_cnt);
 }
 
-int predict_class_sw_hw(const int8_t * image, addresses * addr) {
+int predict_class_sw_hw(const int16_t * image, addresses * addr) {
 #if defined(EMBEDDED) && defined(PRINT_TIME_PER_LAYER)
     double t_start = xilGetMilliseconds();
 #endif
@@ -47,8 +47,8 @@ int predict_class_sw_hw(const int8_t * image, addresses * addr) {
     return predicted_class;
 }
 
-void forward_convolutional_layer_hw(const int8_t * image, const int16_t *int_params, volatile int16_t * matConvPool) {  
-    Xil_DCacheFlushRange((INTPTR)image, IMAGE_SIZE);  
+void forward_convolutional_layer_hw(const int16_t * image, const int16_t *int_params, volatile int16_t * matConvPool) {  
+    Xil_DCacheFlushRange((INTPTR)image, sizeof(int16_t)*IMAGE_SIZE);  
     // Initialize DMA
     XAxiDma dma;
     XAxiDma_Config *cfg_dma;
@@ -59,7 +59,7 @@ void forward_convolutional_layer_hw(const int8_t * image, const int16_t *int_par
     XAxiDma_IntrDisable(&dma, XAXIDMA_IRQ_ALL_MASK, XAXIDMA_DMA_TO_DEVICE);
 
     // Set Inputs on all channels
-    XAxiDma_SimpleTransfer(&dma, (UINTPTR) image, IMAGE_SIZE, XAXIDMA_DMA_TO_DEVICE);
+    XAxiDma_SimpleTransfer(&dma, (UINTPTR) image, sizeof(int16_t)*IMAGE_SIZE, XAXIDMA_DMA_TO_DEVICE);
 
     while (XAxiDma_Busy(&dma,XAXIDMA_DMA_TO_DEVICE));
 

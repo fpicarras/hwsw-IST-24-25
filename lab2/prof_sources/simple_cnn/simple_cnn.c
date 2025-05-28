@@ -51,7 +51,7 @@ void init_memory(addresses * addr) {
     addr->matConvPool = (int16_t*) ((unsigned char *) addr->int_params + MEM_BIN_PARAMS);
     addr->matGemm = (float*) ((unsigned char*) addr->matConvPool + MEM_MAT_C_POOL);
     addr->matSoftMax = (float*) ((unsigned char*) addr->matGemm + MEM_MAT_CONN);
-    addr->image_ip = (unsigned char *) IMAGE_IP_BASE_ADDR;
+    addr->image_ip = (int16_t *) IMAGE_IP_BASE_ADDR;
 
     /* Load images and weights from files if running in PC */
 #ifndef EMBEDDED
@@ -98,7 +98,7 @@ int main() {
         unsigned char *image_in = (unsigned char *) addr.ch_images + i * IMAGE_SIZE;
         /* normalize to [-1, 1] */
         normalize_image((unsigned char *) image_in, (float *) addr.fp_image);
-        image_to_ip(addr.fp_image, addr.image_ip);
+        image_to_ip((float *) addr.fp_image, (int16_t * ) addr.image_ip);
 
 #ifdef PRINT_IMAGE
         print_ppm(image_in);
@@ -106,7 +106,7 @@ int main() {
 
         int prediction_sw = predict_class_sw((float*) addr.fp_image, &addr);
 
-        int prediction = predict_class_sw_hw((int8_t *) addr.image_ip, &addr);
+        int prediction = predict_class_sw_hw((int16_t *) addr.image_ip, &addr);
 
         printf("# Image    SW %03d -> Class=%d (%8s) %3.0f%% [ ",
                i + 1, prediction_sw,
