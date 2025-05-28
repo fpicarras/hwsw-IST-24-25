@@ -4,11 +4,27 @@
 #include "utils.h"
 #include "cnn_sw.h"
 
+void check_output(const int16_t *hw_matrix_out, const float *sw_matrix_out) {
+    int err_cnt = 0;
+    for(int k = 0; k < CONV_OFM_NUMBER; k ++)
+        for (int i = 0; i < HW_MATRIX_OUT_HEIGHT; i++)
+            for (int j = 0; j < HW_MATRIX_OUT_WIDTH; j++) {
+                int ind = k * HW_MATRIX_OUT_HEIGHT * HW_MATRIX_OUT_WIDTH + i * HW_MATRIX_OUT_WIDTH + j;
+                float diff = fixed2float(hw_matrix_out[ind], 10) - sw_matrix_out[ind];
+                diff = diff > 0 ? diff : -diff;
+                if (diff > 2E-3) {
+                    err_cnt ++;
+                }
+            }
+    printf("Number of errors: %d\n", err_cnt);
+}
+
 int predict_class_sw_hw(const int8_t * image, addresses * addr) {
 #if defined(EMBEDDED) && defined(PRINT_TIME_PER_LAYER)
     double t_start = xilGetMilliseconds();
 #endif
     forward_convolutional_layer_hw(image, (int16_t *)addr->int_params, (int16_t *)addr->matConvPool);
+    check_output((int16_t *) addr->matConvPool, (float *) addr->matCpool);
 #if defined(EMBEDDED) && defined(PRINT_TIME_PER_LAYER)
     double t_conv = xilGetMilliseconds();
 #endif
@@ -30,7 +46,7 @@ int predict_class_sw_hw(const int8_t * image, addresses * addr) {
     return predicted_class;
 }
 
-void forward_convolutional_layer_hw(const int8_t * image, const int16_t *int_params, volatile int16_t * matConvPool) {
+void forward_convolutional_layer_hw(const int8_t * image, const int16_t *int_params, volatile int16_t * matConvPool) {    
     // Initialize DMA
     XAxiDma dma;
     XAxiDma_Config *cfg_dma;
@@ -47,7 +63,7 @@ void forward_convolutional_layer_hw(const int8_t * image, const int16_t *int_par
 
     while (XAxiDma_Busy(&dma,XAXIDMA_DMA_TO_DEVICE));
 
-    XAxiDma_SimpleTransfer(&dma, (UINTPTR) int_params, CONV_LAYER_WEIGHTS + CONV_LAYER_BIASES, XAXIDMA_DMA_TO_DEVICE);
+    XAxiDma_SimpleTransfer(&dma, (UINTPTR) int_params, sizeof(int16_t)*(CONV_LAYER_WEIGHTS + CONV_LAYER_BIASES), XAXIDMA_DMA_TO_DEVICE);
 
     while (XAxiDma_Busy(&dma, XAXIDMA_DEVICE_TO_DMA));
 

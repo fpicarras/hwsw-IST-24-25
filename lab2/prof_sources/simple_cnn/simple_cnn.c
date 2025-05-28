@@ -21,6 +21,7 @@
 #include "simple_cnn.h"
 #include "cnn_sw.h"
 #include "cnn_hw_sw.h"
+#include "utils.h"
 #ifdef EMBEDDED
 #include "xaxidma.h"
 #endif
@@ -49,7 +50,7 @@ void init_memory(addresses * addr) {
     addr->int_params = (int16_t*) (MEM_HW_BASE_ADDR);
     addr->matConvPool = (int16_t*) ((unsigned char *) addr->int_params + MEM_BIN_PARAMS);
     addr->matGemm = (float*) ((unsigned char*) addr->matConvPool + MEM_MAT_C_POOL);
-    addr->matSoftMax = (float*) ((unsigned char*) addr->matSoftMax + MEM_MAT_CONN);
+    addr->matSoftMax = (float*) ((unsigned char*) addr->matGemm + MEM_MAT_CONN);
 
     /* Load images and weights from files if running in PC */
 #ifndef EMBEDDED
@@ -76,10 +77,17 @@ void init_memory(addresses * addr) {
           sizeof(unsigned char),
           images_file);
     fclose(images_file);
+#else
+    for (int i = 0; i < TOTAL_PARAMS; i++) {
+        addr->int_params[i] = float2fixed(addr->fp_params[i], 15);
+    }
+    Xil_DCacheFlushRange((INTPTR)addr->ch_images, MEM_BIN_IMAGES);
+    Xil_DCacheFlushRange((INTPTR)addr->int_params, MEM_BIN_PARAMS);
 #endif // EMBEDDED
 }
 
 int main() {
+    printf("Start!\n");
     addresses addr;
     /* Performs memory assignment */
     init_memory(&addr);
@@ -94,17 +102,27 @@ int main() {
         print_ppm(image_in);
 #endif // PRINT_IMAGE
 
-        predict_class_sw((float*) addr.fp_image, &addr);
+        int prediction_sw = predict_class_sw((float*) addr.fp_image, &addr);
 
         int prediction = predict_class_sw_hw((int8_t *) image_in, &addr);
 
-        printf("# Image %03d -> Class=%d (%8s) %3.0f%% [ ",
-               i + 1, prediction,
-               image_class[prediction],
-               addr.matSoftM[prediction] * 100);
+        printf("# Image    SW %03d -> Class=%d (%8s) %3.0f%% [ ",
+               i + 1, prediction_sw,
+               image_class[prediction_sw],
+               addr.matSoftM[prediction_sw] * 100);
 
         for (int i = 0; i < N_CLASSES; i++)
             printf("%3.0f%% ", addr.matSoftM[i] * 100);
+
+        printf(prediction_sw == i % N_CLASSES ? "] OK\n\r" : "] Prediction Error\n\r");
+
+        printf("# Image HW-SW %03d -> Class=%d (%8s) %3.0f%% [ ",
+               i + 1, prediction,
+               image_class[prediction],
+               addr.matSoftMax[prediction] * 100);
+
+        for (int i = 0; i < N_CLASSES; i++)
+            printf("%3.0f%% ", addr.matSoftMax[i] * 100);
 
         printf(prediction == i % N_CLASSES ? "] OK\n\r" : "] Prediction Error\n\r");
     }
