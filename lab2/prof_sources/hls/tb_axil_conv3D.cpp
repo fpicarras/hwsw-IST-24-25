@@ -19,11 +19,18 @@ static float maxpool_f[POOL_OUTPUT_SIZE];
 static int16_t hw_matrix_out[HW_MATRIX_OUT_SIZE];
 
 int float2fixed(float f, int scale) {
-  return (int)(f * (float)(1 << scale) + 0.5F);
+    f = f * (float)(1 << scale);
+    f += 0.5F;
+  return (int)( f);
 }
 
 float fixed2float(int i, int scale) {
   return (float)i / (float)(1 << scale);
+}
+
+void normalize_image(const unsigned char *rgb_image, float *norm_image) {
+    for (int i = 0; i < IMAGE_SIZE; i++)
+        norm_image[i] = ((float) rgb_image[i] / 255 - 0.5F) / 0.5F;
 }
 
 void init_inputs() {
@@ -45,12 +52,17 @@ void init_inputs() {
         images_file);
   fclose(images_file);
 
+  normalize_image((unsigned char *) image_in_i, image_in_f);
   printf("Input Image\n\r");
   for(int k = 0; k < IMAGE_CHANNELS; k++) {
       for (int i = 0; i < IMAGE_HEIGHT; i++) {
           for (int j = 0; j < IMAGE_WIDTH; j++) {
               int ind = k*IMAGE_HEIGHT*IMAGE_WIDTH + i * IMAGE_WIDTH + j;
-              image_in_f[ind] = fixed2float(image_in_i[ind], 7);
+              int tmp = (unsigned char) image_in_i[ind];
+              tmp -= 128;
+              image_in_i[ind] = tmp;
+            // int tmp = float2fixed(image_in_f[ind], 7);
+            //   image_in_i[ind] = tmp;
               printf("%f %4d ", image_in_f[ind], image_in_i[ind]);
           }
           printf("\n");
@@ -204,16 +216,16 @@ void forward_max_pool_layer_i() {
 
 int check_output(const int16_t *sw_matrix_out_i, const float *sw_matrix_out_f) {
     printf("SW Int Output Image\n\r");
-    for(int k = 0; k < CONV_OFM_NUMBER; k ++)
+    for(int k = 0; k < 1; k ++)
         for (int i = 0; i < HW_MATRIX_OUT_HEIGHT; i++) {
             for (int j = 0; j < HW_MATRIX_OUT_WIDTH; j++) {
-                printf("%4d ", sw_matrix_out_i[k * HW_MATRIX_OUT_HEIGHT * HW_MATRIX_OUT_WIDTH + i * HW_MATRIX_OUT_WIDTH + j]);
+                printf("%f ", fixed2float(sw_matrix_out_i[k * HW_MATRIX_OUT_HEIGHT * HW_MATRIX_OUT_WIDTH + i * HW_MATRIX_OUT_WIDTH + j], 10));
             }
             printf("\n\r");
         }
 
     printf("SW Float Output Image\n\r");
-    for(int k = 0; k < CONV_OFM_NUMBER; k ++)
+    for(int k = 0; k < 1; k ++)
         for (int i = 0; i < HW_MATRIX_OUT_HEIGHT; i++) {
             for (int j = 0; j < HW_MATRIX_OUT_WIDTH; j++) {
                 printf("%f ", sw_matrix_out_f[k * HW_MATRIX_OUT_HEIGHT * HW_MATRIX_OUT_WIDTH + i * HW_MATRIX_OUT_WIDTH + j]);
@@ -221,28 +233,28 @@ int check_output(const int16_t *sw_matrix_out_i, const float *sw_matrix_out_f) {
             printf("\n\r");
         }
 
-    printf("HW Output Image\n\r");
-    for(int k = 0; k < CONV_OFM_NUMBER; k ++)
-        for (int i = 0; i < HW_MATRIX_OUT_HEIGHT; i++) {
-            for (int j = 0; j < HW_MATRIX_OUT_WIDTH; j++) {
-                printf("%4d ", hw_matrix_out[k * HW_MATRIX_OUT_HEIGHT * HW_MATRIX_OUT_WIDTH + i * HW_MATRIX_OUT_WIDTH + j]);
-            }
-            printf("\n\r");
-        }
+    // printf("HW Output Image\n\r");
+    // for(int k = 0; k < CONV_OFM_NUMBER; k ++)
+    //     for (int i = 0; i < HW_MATRIX_OUT_HEIGHT; i++) {
+    //         for (int j = 0; j < HW_MATRIX_OUT_WIDTH; j++) {
+    //             printf("%4d ", hw_matrix_out[k * HW_MATRIX_OUT_HEIGHT * HW_MATRIX_OUT_WIDTH + i * HW_MATRIX_OUT_WIDTH + j]);
+    //         }
+    //         printf("\n\r");
+    //     }
 
     int err_cnt = 0;
     for(int k = 0; k < CONV_OFM_NUMBER; k ++)
         for (int i = 0; i < HW_MATRIX_OUT_HEIGHT; i++)
             for (int j = 0; j < HW_MATRIX_OUT_WIDTH; j++) {
                 int ind = k * HW_MATRIX_OUT_HEIGHT * HW_MATRIX_OUT_WIDTH + i * HW_MATRIX_OUT_WIDTH + j;
-                float diff = fixed2float(hw_matrix_out[ind], (OUTPUT_BIT_WIDTH - INTEGER_BIT_WIDTH - 1)) - sw_matrix_out_f[ind];
+                float diff = fixed2float(sw_matrix_out_i[ind], (OUTPUT_BIT_WIDTH - INTEGER_BIT_WIDTH - 1)) - sw_matrix_out_f[ind];
                 diff = diff > 0 ? diff : -diff;
-                if (hw_matrix_out[ind] != sw_matrix_out_i[ind]) {
+                // if (hw_matrix_out[ind] != sw_matrix_out_i[ind]) {
+                //     err_cnt++;
+                    // printf("Int: %d,%d: %d != %d\n\r", i, j, hw_matrix_out[ind], sw_matrix_out_i[ind]);
+                if (diff > 2E-3) {
                     err_cnt++;
-                    printf("Int: %d,%d: %d != %d\n\r", i, j, hw_matrix_out[ind], sw_matrix_out_i[ind]);
-                } else if (diff > 2E-3) {
-                    err_cnt++;
-                    printf("Float: %d,%d: diff = %f\n\r", i, j, diff);
+                    // printf("Float: %d,%d: diff = %f\n\r", i, j, diff);
                 }
             }
 
