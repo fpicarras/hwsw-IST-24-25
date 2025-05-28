@@ -67,6 +67,7 @@ typedef hls::axis<output_t, 0, 0, 0> strmout_t;
 #define HW_MATRIX_OUT_HEIGHT POOL_OUTPUT_HEIGHT
 #define HW_MATRIX_OUT_WIDTH POOL_OUTPUT_WIDTH
 #define HW_MATRIX_OUT_SIZE POOL_OUTPUT_SIZE
+#define FRAC_BIT_WIDTH OUTPUT_BIT_WIDTH - INTEGER_BIT_WIDTH - 1
 
 void axil_conv3D(hls::stream<strmin_t> &strm_in,
                  hls::stream<strmout_t> &strm_out);

@@ -72,16 +72,16 @@ static data_t bias[CONV_OFM_NUMBER/BIAS_PER_DATA];
           loop_x:
           for (int x = 0; x < CONV_KERNEL_SIZE; x++) {
             int image_1d_idx = image_1d_idx_base + x;
-            int image_1d_idx2 = image_1d_idx & 0x3;
+            int image_1d_idx2 = image_1d_idx & 0x1;
             int kernel_1d_idx_r = (kernel_1d_idx + x);
             int kernel_1d_idx_g = (kernel_1d_idx + x) + CONV_KERNEL_SIZE*CONV_KERNEL_SIZE;
             int kernel_1d_idx_b = (kernel_1d_idx + x) + 2*CONV_KERNEL_SIZE*CONV_KERNEL_SIZE;
             int kernel_1d_idx2_r = kernel_1d_idx_r & 0x1;
             int kernel_1d_idx2_g = kernel_1d_idx_g & 0x1;
             int kernel_1d_idx2_b = kernel_1d_idx_b & 0x1;
-            image_r = (image_red[image_1d_idx >> 2] >> (image_1d_idx2 << 3)) & 0xFF;
-            image_g = (image_green[image_1d_idx >> 2] >> (image_1d_idx2 << 3)) & 0xFF;
-            image_b = (image_blue[image_1d_idx >> 2] >> (image_1d_idx2 << 3)) & 0xFF;
+            image_r = (image_red[image_1d_idx >> 1] >> (image_1d_idx2 << 4)) & 0xFFFF;
+            image_g = (image_green[image_1d_idx >> 1] >> (image_1d_idx2 << 4)) & 0xFFFF;
+            image_b = (image_blue[image_1d_idx >> 1] >> (image_1d_idx2 << 4)) & 0xFFFF;
             weight_r  = (weights[kernel_1d_idx_r >> 1] >> (kernel_1d_idx2_r << 4)) & 0xFFFF;
             weight_g  = (weights[kernel_1d_idx_g >> 1] >> (kernel_1d_idx2_g << 4)) & 0xFFFF;
             weight_b  = (weights[kernel_1d_idx_b >> 1] >> (kernel_1d_idx2_b << 4)) & 0xFFFF;
