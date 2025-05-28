@@ -4,11 +4,12 @@
 
 #define FLT_MAX 3.402823466e+38F
 
-static int8_t image_in_i[IMAGE_SIZE];
+static int8_t image_in[IMAGE_SIZE];
+static int16_t image_in_i[IMAGE_SIZE];
 static int16_t kernel_i[CONV_LAYER_WEIGHTS];
 static int16_t bias_i[CONV_LAYER_BIASES];
-static int16_t image_out_i[CONV_OUTPUT_SIZE];
-static int16_t maxpool_i[POOL_OUTPUT_SIZE];
+static int32_t image_out_i[CONV_OUTPUT_SIZE];
+static int32_t maxpool_i[POOL_OUTPUT_SIZE];
 
 static float image_in_f[IMAGE_SIZE];
 static float kernel_f[CONV_LAYER_WEIGHTS];
@@ -21,7 +22,7 @@ static int16_t hw_matrix_out[HW_MATRIX_OUT_SIZE];
 int float2fixed(float f, int scale) {
     f = f * (float)(1 << scale);
     f += 0.5F;
-  return (int)( f);
+  return (int)(f);
 }
 
 float fixed2float(int i, int scale) {
@@ -46,23 +47,23 @@ void init_inputs() {
 
   FILE *images_file = fopen(IMAGES_FILENAME, "rb");
   assert(images_file);
-  fread(image_in_i,
+  fread(image_in,
         IMAGE_SIZE,
         sizeof(unsigned char),
         images_file);
   fclose(images_file);
 
-  normalize_image((unsigned char *) image_in_i, image_in_f);
+  normalize_image((unsigned char *) image_in, image_in_f);
   printf("Input Image\n\r");
   for(int k = 0; k < IMAGE_CHANNELS; k++) {
       for (int i = 0; i < IMAGE_HEIGHT; i++) {
           for (int j = 0; j < IMAGE_WIDTH; j++) {
               int ind = k*IMAGE_HEIGHT*IMAGE_WIDTH + i * IMAGE_WIDTH + j;
-              int tmp = (unsigned char) image_in_i[ind];
-              tmp -= 128;
-              image_in_i[ind] = tmp;
-            // int tmp = float2fixed(image_in_f[ind], 7);
+            //   int tmp = (unsigned char) image_in_i[ind];
+            //   tmp -= 128;
             //   image_in_i[ind] = tmp;
+              int tmp = float2fixed(image_in_f[ind], 15);
+              image_in_i[ind] = tmp;
               printf("%f %4d ", image_in_f[ind], image_in_i[ind]);
           }
           printf("\n");
@@ -160,7 +161,7 @@ void sw_convolution_3D_i() {
     for(int l = 0; l < CONV_OFM_NUMBER; l ++)
         for (int i = 0; i < CONV_OUTPUT_HEIGHT; i++)
             for (int j = 0; j < CONV_OUTPUT_WIDTH; j++) {
-                int accum = (int)bias_i[l] << (ACCUM_BIT_WIDTH - INTEGER_BIT_WIDTH - WEIGHT_BIT_WIDTH); /* initialize result with bias */
+                int64_t accum = (int64_t)bias_i[l] << (ACCUM_BIT_WIDTH - INTEGER_BIT_WIDTH - WEIGHT_BIT_WIDTH); /* initialize result with bias */
 
                 for (int k = 0; k < CONV_KERNEL_SIZE; k++)
                     for (int x = 0; x < CONV_KERNEL_SIZE; x++) {
@@ -174,13 +175,19 @@ void sw_convolution_3D_i() {
                                 (i + k) * IMAGE_WIDTH + /* input row */
                                 j + x;                  /* input column */
 
-                        accum += kernel_i[kernel_1d_idx] * image_in_i[input_1d_idx];
-                        accum += kernel_i[kernel_1d_idx + CONV_KERNEL_SIZE*CONV_KERNEL_SIZE] * image_in_i[input_1d_idx + IMAGE_HEIGHT * IMAGE_WIDTH];
-                        accum += kernel_i[kernel_1d_idx + 2*CONV_KERNEL_SIZE*CONV_KERNEL_SIZE] * image_in_i[input_1d_idx + 2 * IMAGE_HEIGHT * IMAGE_WIDTH];
+                        int w = kernel_i[kernel_1d_idx];
+                        int im = image_in_i[input_1d_idx];
+                        accum +=  w * im; 
+                        w = kernel_i[kernel_1d_idx + CONV_KERNEL_SIZE*CONV_KERNEL_SIZE];
+                        im = image_in_i[input_1d_idx + IMAGE_HEIGHT * IMAGE_WIDTH];
+                        accum += w * im;
+                        w = kernel_i[kernel_1d_idx + 2*CONV_KERNEL_SIZE*CONV_KERNEL_SIZE];
+                        im = image_in_i[input_1d_idx + 2 * IMAGE_HEIGHT * IMAGE_WIDTH];
+                        accum += w * im; 
                     }
 
                 /* Normalize result */
-                accum >>= (ACCUM_BIT_WIDTH - OUTPUT_BIT_WIDTH);
+                accum >>= (ACCUM_BIT_WIDTH - 32);
                 if (accum < 0)
                     accum = 0;
 
@@ -214,12 +221,12 @@ void forward_max_pool_layer_i() {
             }
 }
 
-int check_output(const int16_t *sw_matrix_out_i, const float *sw_matrix_out_f) {
+int check_output(const int32_t *sw_matrix_out_i, const float *sw_matrix_out_f) {
     printf("SW Int Output Image\n\r");
     for(int k = 0; k < 1; k ++)
         for (int i = 0; i < HW_MATRIX_OUT_HEIGHT; i++) {
             for (int j = 0; j < HW_MATRIX_OUT_WIDTH; j++) {
-                printf("%f ", fixed2float(sw_matrix_out_i[k * HW_MATRIX_OUT_HEIGHT * HW_MATRIX_OUT_WIDTH + i * HW_MATRIX_OUT_WIDTH + j], 10));
+                printf("%f ", fixed2float(sw_matrix_out_i[k * HW_MATRIX_OUT_HEIGHT * HW_MATRIX_OUT_WIDTH + i * HW_MATRIX_OUT_WIDTH + j], 26));
             }
             printf("\n\r");
         }
@@ -247,7 +254,7 @@ int check_output(const int16_t *sw_matrix_out_i, const float *sw_matrix_out_f) {
         for (int i = 0; i < HW_MATRIX_OUT_HEIGHT; i++)
             for (int j = 0; j < HW_MATRIX_OUT_WIDTH; j++) {
                 int ind = k * HW_MATRIX_OUT_HEIGHT * HW_MATRIX_OUT_WIDTH + i * HW_MATRIX_OUT_WIDTH + j;
-                float diff = fixed2float(sw_matrix_out_i[ind], (OUTPUT_BIT_WIDTH - INTEGER_BIT_WIDTH - 1)) - sw_matrix_out_f[ind];
+                float diff = fixed2float(sw_matrix_out_i[ind], 26) - sw_matrix_out_f[ind];
                 diff = diff > 0 ? diff : -diff;
                 // if (hw_matrix_out[ind] != sw_matrix_out_i[ind]) {
                 //     err_cnt++;
@@ -267,31 +274,31 @@ int main() {
     hls::stream<strmout_t> str_out;
     strmin_t tmp_in;
     strmout_t tmp_out;
-    for (int i = 0; i < IMAGE_SIZE; i+=4) {
-        tmp_in.data(7, 0) = image_in_i[i];
-        tmp_in.data(15, 8) = image_in_i[i + 1];
-        tmp_in.data(23, 16) = image_in_i[i + 2];
-        tmp_in.data(31, 24) = image_in_i[i + 3];
-        tmp_in.last = (ap_int<1>)0;
-        str_in.write(tmp_in);
-    }
-    for (int i = 0; i < CONV_LAYER_BIASES; i+=2) {
-        tmp_in.data(15, 0) = bias_i[i];
-        tmp_in.data(31, 16) = bias_i[i + 1];
-        tmp_in.last = (ap_int<1>)(i == (CONV_LAYER_BIASES - 2));
-        str_in.write(tmp_in);
-    }
-    for (int i = 0; i < CONV_LAYER_WEIGHTS; i+=2) {
-        tmp_in.data(15, 0) = kernel_i[i];
-        tmp_in.data(31, 16) = kernel_i[i + 1];
-        tmp_in.last = (ap_int<1>)(i == CONV_LAYER_WEIGHTS - 2);
-        str_in.write(tmp_in);
-    }
-    axil_conv3D(str_in, str_out);
-    for (int i = 0; i < HW_MATRIX_OUT_SIZE; i++) {
-        tmp_out = str_out.read();
-        hw_matrix_out[i] = tmp_out.data;
-    }
+    // for (int i = 0; i < IMAGE_SIZE; i+=4) {
+    //     tmp_in.data(7, 0) = image_in_i[i];
+    //     tmp_in.data(15, 8) = image_in_i[i + 1];
+    //     tmp_in.data(23, 16) = image_in_i[i + 2];
+    //     tmp_in.data(31, 24) = image_in_i[i + 3];
+    //     tmp_in.last = (ap_int<1>)0;
+    //     str_in.write(tmp_in);
+    // }
+    // for (int i = 0; i < CONV_LAYER_BIASES; i+=2) {
+    //     tmp_in.data(15, 0) = bias_i[i];
+    //     tmp_in.data(31, 16) = bias_i[i + 1];
+    //     tmp_in.last = (ap_int<1>)(i == (CONV_LAYER_BIASES - 2));
+    //     str_in.write(tmp_in);
+    // }
+    // for (int i = 0; i < CONV_LAYER_WEIGHTS; i+=2) {
+    //     tmp_in.data(15, 0) = kernel_i[i];
+    //     tmp_in.data(31, 16) = kernel_i[i + 1];
+    //     tmp_in.last = (ap_int<1>)(i == CONV_LAYER_WEIGHTS - 2);
+    //     str_in.write(tmp_in);
+    // }
+    // axil_conv3D(str_in, str_out);
+    // for (int i = 0; i < HW_MATRIX_OUT_SIZE; i++) {
+    //     tmp_out = str_out.read();
+    //     hw_matrix_out[i] = tmp_out.data;
+    // }
 
     sw_convolution_3D_i();
     forward_max_pool_layer_i();

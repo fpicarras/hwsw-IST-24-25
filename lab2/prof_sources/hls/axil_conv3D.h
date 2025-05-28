@@ -27,7 +27,7 @@
 /* ============================ PL DATA CONFIGURATION =========================== */
 #define WEIGHT_BIT_WIDTH 16
 #define BIAS_BIT_WIDTH 16
-#define IMAGE_BIT_WIDTH 8
+#define IMAGE_BIT_WIDTH 16
 #define OUTPUT_BIT_WIDTH 16
 #define DATA_BIT_WIDTH 32
 #define INTEGER_BIT_WIDTH 5
