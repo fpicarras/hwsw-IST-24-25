@@ -8,7 +8,7 @@
  * Executes all layers of the CNN sequentially and returns the predicted class for a given sample.
  * @return Predicted class for a given sample
  */
-int predict_class_sw(addresses * addr);
+int predict_class_sw(float * image, addresses * addr);
 
 void predict_images_sw(addresses * addr);
 

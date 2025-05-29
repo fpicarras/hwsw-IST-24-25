@@ -9,7 +9,8 @@
 #define EMBEDDED                         /* uncomment to run in Zynq */
 //#define USE_GEMM                         /* uncomment to use GEMM */
 //#define PRINT_IMAGE                      /* uncomment to print input images to console */
-// #define PRINT_TIME_PER_LAYER             /* uncomment to print elapsed time per layer on zynq */
+//#define PRINT_TIME_PER_LAYER             /* uncomment to print elapsed time per layer on zynq */
+#define PRINT_TOTAL_TIME                 /* uncomment to print elapsed time per layer on zynq */
 #define FIRST_IMAGE_TO_CLASSIFY 1        /* first image of the test set to classify */
 #define NUMBER_OF_IMAGES_TO_CLASSIFY 10  /* number of images to classify sequentially */
 /* ============================== END OF RUN CONFIGURATION ============================= */
@@ -48,7 +49,6 @@ typedef struct addresses
 {
   volatile unsigned char *ch_images; /* images data region */
   volatile float *fp_params;         /* network parameters data region */
-  volatile float *fp_image;          /* scaled floating-point image to be processed */
   volatile float *matA;              /* auxiliary matrix A to implement 3D convolution as a matrix multiplication */
   volatile float *matCv;             /* output of convolutional layer before adding bias */
   volatile float *matCbias;          /* output of convolutional layer after adding bias */
@@ -61,7 +61,8 @@ typedef struct addresses
   volatile int32_t *matConvPool;
   volatile float *matGemm;
   volatile float *matSoftMax;
-  volatile int16_t *image_ip;
+  volatile float *fp_images;          /* scaled floating-point image to be processed */
+  volatile int16_t *int_images;
 } addresses;
 
 

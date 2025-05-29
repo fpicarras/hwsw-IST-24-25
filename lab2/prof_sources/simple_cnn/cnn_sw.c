@@ -168,14 +168,14 @@ int forward_softmax_layer(const float* A, float* B) {
     return best;
 }
 
-int predict_class_sw(addresses * addr) {
+int predict_class_sw(float* image, addresses * addr) {
 #if defined(EMBEDDED) && defined(PRINT_TIME_PER_LAYER)
     double t_start = xilGetMilliseconds();
 #endif
 #ifdef USE_GEMM
-    forward_gemm_layer((float *) addr->fp_image, (float*) addr->matA, (float*) addr->fp_params, (float*) addr->matCbias);
+    forward_gemm_layer(image, (float*) addr->matA, (float*) addr->fp_params, (float*) addr->matCbias);
 #else
-    forward_convolutional_layer((float*) addr->fp_params, (float*) addr->fp_image, (float*) addr->matCrelu);
+    forward_convolutional_layer((float*) addr->fp_params, image, (float*) addr->matCrelu);
 #endif
 #if defined(EMBEDDED) && defined(PRINT_TIME_PER_LAYER)
     double t_conv = xilGetMilliseconds();
@@ -204,20 +204,20 @@ int predict_class_sw(addresses * addr) {
 }
 
 void predict_images_sw(addresses * addr) {
-    #if defined(EMBEDDED) && defined(PRINT_TIME_PER_LAYER)
+    #if defined(EMBEDDED) && (defined(PRINT_TIME_PER_LAYER) || defined(PRINT_TOTAL_TIME))
         double t_start = xilGetMilliseconds();
     #endif
+    for (int i = FIRST_IMAGE_TO_CLASSIFY - 1; i < FIRST_IMAGE_TO_CLASSIFY + NUMBER_OF_IMAGES_TO_CLASSIFY - 1; i++) {
+        /* normalize to [-1, 1] */
+        normalize_image((unsigned char *) &addr->ch_images[i * IMAGE_SIZE], (float *) &addr->fp_images[i*IMAGE_SIZE]);
+    }
     /* Classify first NUMBER_OF_IMAGES_TO_CLASSIFY from the dataset */
     for (int i = FIRST_IMAGE_TO_CLASSIFY - 1; i < FIRST_IMAGE_TO_CLASSIFY + NUMBER_OF_IMAGES_TO_CLASSIFY - 1; i++) {
-        unsigned char *image_in = (unsigned char *) addr->ch_images + i * IMAGE_SIZE;
-        /* normalize to [-1, 1] */
-        normalize_image((unsigned char *) image_in, (float *) addr->fp_image);
-
 #ifdef PRINT_IMAGE
         print_ppm(image_in);
 #endif // PRINT_IMAGE
 
-        int prediction = predict_class_sw(addr);
+        int prediction = predict_class_sw((float*) &addr->fp_images[i*IMAGE_SIZE], addr);
 
         printf("# Image    SW %03d -> Class=%d (%8s) %3.0f%% [ ",
                i + 1, prediction,
@@ -229,11 +229,11 @@ void predict_images_sw(addresses * addr) {
 
         printf(prediction == i % N_CLASSES ? "] OK\n\r" : "] Prediction Error\n\r");
     }
-    #if defined(EMBEDDED) && defined(PRINT_TIME_PER_LAYER)
+    #if defined(EMBEDDED) && (defined(PRINT_TIME_PER_LAYER) || defined(PRINT_TOTAL_TIME))
         double t_end = xilGetMilliseconds();
     #endif
 
-    #if defined(EMBEDDED) && defined(PRINT_TIME_PER_LAYER)
+    #if defined(EMBEDDED) && (defined(PRINT_TIME_PER_LAYER) || defined(PRINT_TOTAL_TIME))
         printf("SW    Images Prediction took %.3f ms.\n\r", t_end - t_start);
     #endif // PRINT_TIME_PER_LAYER
 }

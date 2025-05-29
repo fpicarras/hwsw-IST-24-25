@@ -34,8 +34,7 @@ void init_memory(addresses * addr) {
     /* Assign memory regions */
     addr->ch_images = (unsigned char *) MEM_BASE_ADDR;
     addr->fp_params = (float *) ((unsigned char *) addr->ch_images + MEM_BIN_IMAGES);
-    addr->fp_image = (float *) ((unsigned char *) addr->fp_params + MEM_BIN_PARAMS);
-    addr->matA = (float *) ((unsigned char *) addr->fp_image + MEM_FP_IMAGE);
+    addr->matA = (float *) ((unsigned char *) addr->fp_params + MEM_BIN_IMAGES);
     addr->matCv = (float *) ((unsigned char *) addr->matA + MEM_MAT_A);
     addr->matCbias = (float *) ((unsigned char *) addr->matCv + MEM_MAT_C_V);
     addr->matCrelu = (float *) ((unsigned char *) addr->matCbias + MEM_MAT_C_BIAS);
@@ -48,7 +47,9 @@ void init_memory(addresses * addr) {
     addr->matConvPool = (int32_t*) ((unsigned char *) addr->int_params + MEM_BIN_PARAMS);
     addr->matGemm = (float*) ((unsigned char*) addr->matConvPool + MEM_MAT_C_POOL);
     addr->matSoftMax = (float*) ((unsigned char*) addr->matGemm + MEM_MAT_CONN);
-    addr->image_ip = (int16_t *) IMAGE_IP_BASE_ADDR;
+
+    addr->fp_images = (float *) IMAGES_BASE_ADDR;
+    addr->int_images = (int16_t *) ((unsigned char *) addr->fp_images + 4*MEM_BIN_IMAGES);
 
     /* Load images and weights from files if running in PC */
 #ifndef EMBEDDED
