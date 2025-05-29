@@ -8,6 +8,7 @@
  */
 #include "gemm.h"
 #include "utils.h"
+#include "app_params.h"
 
 void gemm(const float *A, const float *B, float *C, int rowsA, int colsA, int colsB) {
     for (int i = 0; i < rowsA; i++)
@@ -26,6 +27,15 @@ void gemmBias(const int16_t *A, const int32_t *B, const int16_t* bias, float *C,
                 acc += (int64_t) A[i * colsA + k] * B[k * colsB + j];
             C[i * colsB + j] = fixed2float(acc, 41);
         }
+}
+
+void gemvOpt(const int16_t *A, const int32_t *B, const int16_t* bias, float *C) {
+    for (int i = 0; i < N_CLASSES; i++) {
+        int64_t acc = (int64_t) bias[i] << 26;
+        for (int k = 0; k < POOL_OUTPUT_SIZE; k++)
+            acc += (int64_t) A[i * POOL_OUTPUT_SIZE + k] * B[k];
+        C[i] = fixed2float(acc, 41);
+    }
 }
 
 void gemmBT(const float *A, const float *BT, float *C, int rowsA, int colsA, int rowsBT) {

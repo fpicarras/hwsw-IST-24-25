@@ -68,13 +68,10 @@ void forward_connected_layer_int(const int32_t *X, const int16_t * int_params, f
             (int16_t *) mbias +
             N_CLASSES;
 
-    gemmBias(matW,
+    gemvOpt(matW,
          (int32_t *) X,
          mbias,
-         (float *) Y,
-         N_CLASSES,
-         POOL_OUTPUT_SIZE,
-         1);
+         (float *) Y);
 }
 
 void predict_images_hw_sw(addresses * addr) {

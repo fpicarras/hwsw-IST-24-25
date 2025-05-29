@@ -3,6 +3,8 @@
 
 #include <stdint.h>
 
+#define BLOCK_SIZE 32 // Block size for tiling
+
 /**
  * Computes matrix multiplication using the GEMM kernel.
  * @param A Gathered matrix A
@@ -25,6 +27,9 @@ void gemm(const float *A, const float *B, float *C, int rowsA, int colsA, int co
  * @param colsB Columns of matrix B
  */
 void gemmBias(const int16_t *A, const int32_t *B, const int16_t* bias, float *C, int rowsA, int colsA, int colsB);
+
+
+void gemvOpt(const int16_t *A, const int32_t *B, const int16_t* bias, float *C);
 
 /**
  * Computes matrix multiplication using the GEMM kernel with second matrix transposed.
