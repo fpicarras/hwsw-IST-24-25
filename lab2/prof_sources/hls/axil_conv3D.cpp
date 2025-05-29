@@ -17,23 +17,8 @@ static bool weights_ready = false;
 
   strmin_t tmp;
   /* Input Image Stream */
-  loop_red: 
-  for(int i = 0; i < IMAGE_HEIGHT*IMAGE_WIDTH/IMAGES_PER_DATA; i ++) {
-    tmp = strm_in.read();
-    image_red[i] = tmp.data;
-  }
-  loop_green: 
-  for(int i = 0; i < IMAGE_HEIGHT*IMAGE_WIDTH/IMAGES_PER_DATA; i ++) {
-    tmp = strm_in.read();
-    image_green[i] = tmp.data;
-  }
-  loop_blue: 
-  for(int i = 0; i < IMAGE_HEIGHT*IMAGE_WIDTH/IMAGES_PER_DATA; i ++) {
-    tmp = strm_in.read();
-    image_blue[i] = tmp.data;
-  }
 
-  /* Bias Stream */
+    /* Bias Stream */
   if(!weights_ready) {
     loop_bias:
     for(int i = 0; i < CONV_OFM_NUMBER/BIAS_PER_DATA; i ++) {
@@ -51,16 +36,32 @@ static bool weights_ready = false;
 
   weights_ready = true;
 
-  output_t maxpool[POOL_OUTPUT_WIDTH];
+  loop_red: 
+  for(int i = 0; i < IMAGE_HEIGHT*IMAGE_WIDTH/IMAGES_PER_DATA; i ++) {
+    tmp = strm_in.read();
+    image_red[i] = tmp.data;
+  }
+  loop_green: 
+  for(int i = 0; i < IMAGE_HEIGHT*IMAGE_WIDTH/IMAGES_PER_DATA; i ++) {
+    tmp = strm_in.read();
+    image_green[i] = tmp.data;
+  }
+  loop_blue: 
+  for(int i = 0; i < IMAGE_HEIGHT*IMAGE_WIDTH/IMAGES_PER_DATA; i ++) {
+    tmp = strm_in.read();
+    image_blue[i] = tmp.data;
+  }
+
   loop_conv:
   for(int l = 0; l < CONV_OFM_NUMBER; l++) {
     loop_i:
-    for (int i = 0; i < CONV_OUTPUT_HEIGHT; i++) {
+    for (int i = 0; i < CONV_OUTPUT_HEIGHT; i+=2) {
       loop_j:
-      for (int j = 0; j < CONV_OUTPUT_WIDTH; j++) {
-        accum_t acc_r = 0;
-        accum_t acc_g = 0;
-        accum_t acc_b = 0;
+      for (int j = 0; j < CONV_OUTPUT_WIDTH; j+=2) {
+        // Accumulators for the 4 different positions
+        accum_t acc0_r = 0, acc1_r = 0, acc2_r = 0, acc3_r = 0;
+        accum_t acc0_g = 0, acc1_g = 0, acc2_g = 0, acc3_g = 0;
+        accum_t acc0_b = 0, acc1_b = 0, acc2_b = 0, acc3_b = 0;
 
         image_t image_r, image_g, image_b;
         output_t acc_sat;
@@ -76,29 +77,73 @@ static bool weights_ready = false;
           int image_1d_idx_base = (i + k) * IMAGE_WIDTH + j; /* start of input row */
           loop_x:
           for (int x = 0; x < CONV_KERNEL_SIZE; x++) {
-            int image_1d_idx = image_1d_idx_base + x;
-            int image_1d_idx2 = image_1d_idx & 0x1;
+            // Kernel values
             int kernel_1d_idx_r = (kernel_1d_idx + x);
             int kernel_1d_idx_g = (kernel_1d_idx + x) + CONV_KERNEL_SIZE*CONV_KERNEL_SIZE;
             int kernel_1d_idx_b = (kernel_1d_idx + x) + 2*CONV_KERNEL_SIZE*CONV_KERNEL_SIZE;
             int kernel_1d_idx2_r = kernel_1d_idx_r & 0x1;
             int kernel_1d_idx2_g = kernel_1d_idx_g & 0x1;
             int kernel_1d_idx2_b = kernel_1d_idx_b & 0x1;
+            // Image values
+            // x -
+            // - -
+            int image_1d_idx = image_1d_idx_base + x;
+            int image_1d_idx2 = image_1d_idx & 0x1;
             image_r = (image_red[image_1d_idx >> 1] >> (image_1d_idx2 << 4)) & 0xFFFF;
             image_g = (image_green[image_1d_idx >> 1] >> (image_1d_idx2 << 4)) & 0xFFFF;
             image_b = (image_blue[image_1d_idx >> 1] >> (image_1d_idx2 << 4)) & 0xFFFF;
             weight_r  = (weights[kernel_1d_idx_r >> 1] >> (kernel_1d_idx2_r << 4)) & 0xFFFF;
             weight_g  = (weights[kernel_1d_idx_g >> 1] >> (kernel_1d_idx2_g << 4)) & 0xFFFF;
             weight_b  = (weights[kernel_1d_idx_b >> 1] >> (kernel_1d_idx2_b << 4)) & 0xFFFF;
-            acc_r += weight_r * image_r;
-            acc_g += weight_g * image_g;
-            acc_b += weight_b * image_b;
+            acc0_r += weight_r * image_r;
+            acc0_g += weight_g * image_g;
+            acc0_b += weight_b * image_b;
+            
+            // - x
+            // - -
+            image_1d_idx = image_1d_idx_base + x +1;
+            image_1d_idx2 = image_1d_idx & 0x1;
+            image_r = (image_red[image_1d_idx >> 1] >> (image_1d_idx2 << 4)) & 0xFFFF;
+            image_g = (image_green[image_1d_idx >> 1] >> (image_1d_idx2 << 4)) & 0xFFFF;
+            image_b = (image_blue[image_1d_idx >> 1] >> (image_1d_idx2 << 4)) & 0xFFFF;
+            acc1_r += weight_r * image_r;
+            acc1_g += weight_g * image_g;
+            acc1_b += weight_b * image_b;
+            
+            // - -
+            // x -
+            image_1d_idx = image_1d_idx_base + x + IMAGE_WIDTH;
+            image_1d_idx2 = image_1d_idx & 0x1;
+            image_r = (image_red[image_1d_idx >> 1] >> (image_1d_idx2 << 4)) & 0xFFFF;
+            image_g = (image_green[image_1d_idx >> 1] >> (image_1d_idx2 << 4)) & 0xFFFF;
+            image_b = (image_blue[image_1d_idx >> 1] >> (image_1d_idx2 << 4)) & 0xFFFF;
+            acc2_r += weight_r * image_r;
+            acc2_g += weight_g * image_g;
+            acc2_b += weight_b * image_b;
+            
+            // - -
+            // - x
+            image_1d_idx = image_1d_idx_base + x + IMAGE_WIDTH + 1;
+            image_1d_idx2 = image_1d_idx & 0x1;
+            image_r = (image_red[image_1d_idx >> 1] >> (image_1d_idx2 << 4)) & 0xFFFF;
+            image_g = (image_green[image_1d_idx >> 1] >> (image_1d_idx2 << 4)) & 0xFFFF;
+            image_b = (image_blue[image_1d_idx >> 1] >> (image_1d_idx2 << 4)) & 0xFFFF;
+            acc3_r += weight_r * image_r;
+            acc3_g += weight_g * image_g;
+            acc3_b += weight_b * image_b;
           }
         }
 
         int bias_idx2 = l & 0x1;
         bias_t bia = (bias_t)((bias[l >> 1] >> (bias_idx2 << 4)) & 0xFFFF);
-        accum_t acc = acc_r + acc_g + acc_b + ((accum_t)bia << (ACCUM_BIT_WIDTH - INTEGER_BIT_WIDTH - WEIGHT_BIT_WIDTH));
+        accum_t acc0 = acc0_r + acc0_g + acc0_b + ((accum_t)bia << (ACCUM_BIT_WIDTH - INTEGER_BIT_WIDTH - WEIGHT_BIT_WIDTH));
+        accum_t acc1 = acc1_r + acc1_g + acc1_b + ((accum_t)bia << (ACCUM_BIT_WIDTH - INTEGER_BIT_WIDTH - WEIGHT_BIT_WIDTH));
+        accum_t acc2 = acc2_r + acc2_g + acc2_b + ((accum_t)bia << (ACCUM_BIT_WIDTH - INTEGER_BIT_WIDTH - WEIGHT_BIT_WIDTH));
+        accum_t acc3 = acc3_r + acc3_g + acc3_b + ((accum_t)bia << (ACCUM_BIT_WIDTH - INTEGER_BIT_WIDTH - WEIGHT_BIT_WIDTH));
+
+        accum_t acc = (acc0 > acc1) ? acc0 : acc1;
+        acc = (acc > acc2) ? acc : acc2;
+        acc = (acc > acc3) ? acc : acc3;
 
         acc = acc >> (ACCUM_BIT_WIDTH - OUTPUT_BIT_WIDTH);
         /* Relu */
@@ -107,20 +152,12 @@ static bool weights_ready = false;
         else
           acc_sat = acc;
 
-         /* Maxpool */
-        int maxpool_ind = j >> 1;
-        if(((i & 0x1) == 0 && (j & 0x1) == 0) || (maxpool[maxpool_ind] < acc_sat)) {
-          maxpool[maxpool_ind] = acc_sat;
-        }
-
-        if((j & 0x1) == 0x1 && (i & 0x1) == 0x1) {
-          strmout_t chunk_out;
-          chunk_out.last = ((i == CONV_OUTPUT_HEIGHT - 1) && (j == CONV_OUTPUT_WIDTH - 1) && (l == CONV_OFM_NUMBER - 1));
-          chunk_out.data = maxpool[maxpool_ind];
-          chunk_out.keep = 0xF;
-          chunk_out.strb = 0xF;
-          strm_out.write(chunk_out);
-        }
+        strmout_t chunk_out;
+        chunk_out.last = ((i == CONV_OUTPUT_HEIGHT - 1) && (j == CONV_OUTPUT_WIDTH - 1) && (l == CONV_OFM_NUMBER - 1));
+        chunk_out.data = acc_sat;
+        chunk_out.keep = 0xF;
+        chunk_out.strb = 0xF;
+        strm_out.write(chunk_out);
       }
     }
   }

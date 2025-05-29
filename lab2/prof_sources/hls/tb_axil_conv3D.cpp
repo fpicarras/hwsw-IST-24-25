@@ -248,13 +248,6 @@ int main() {
     strmout_t tmp_out;
     int err_cnt = 0;
     for(int k = 0; k < 1; k ++) {
-        normalize_image((unsigned char *) &image_in[k*IMAGE_SIZE]);
-        for (int i = 0; i < IMAGE_SIZE; i+=IMAGES_PER_DATA) {
-            tmp_in.data(15, 0) = image_in_i[i];
-            tmp_in.data(31, 16) = image_in_i[i + 1];
-            tmp_in.last = (ap_int<1>)0;
-            str_in.write(tmp_in);
-        }
         if(k == 0) {
             for (int i = 0; i < CONV_LAYER_BIASES; i+=BIAS_PER_DATA) {
                 tmp_in.data(15, 0) = bias_i[i];
@@ -268,6 +261,13 @@ int main() {
                 tmp_in.last = (ap_int<1>)(i == CONV_LAYER_WEIGHTS - 2);
                 str_in.write(tmp_in);
             }
+        }
+        normalize_image((unsigned char *) &image_in[k*IMAGE_SIZE]);
+        for (int i = 0; i < IMAGE_SIZE; i+=IMAGES_PER_DATA) {
+            tmp_in.data(15, 0) = image_in_i[i];
+            tmp_in.data(31, 16) = image_in_i[i + 1];
+            tmp_in.last = (ap_int<1>)0;
+            str_in.write(tmp_in);
         }
         axil_conv3D(str_in, str_out);
         for (int i = 0; i < HW_MATRIX_OUT_SIZE; i++) {

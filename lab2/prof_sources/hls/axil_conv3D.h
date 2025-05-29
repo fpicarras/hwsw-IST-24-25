@@ -15,6 +15,8 @@
 #define N_CLASSES 10                 /* number of possible classes */
 #define WEIGHTS_FILENAME "/home/joao-pedro/Documents/Tecnico/Y1-P4/HW/Labs/hwsw-IST-24-25/lab2/prof_sources/simple_cnn/weights.bin"   /* file where the weights are stored */
 #define IMAGES_FILENAME "/home/joao-pedro/Documents/Tecnico/Y1-P4/HW/Labs/hwsw-IST-24-25/lab2/prof_sources/simple_cnn/images.bin" /* file where the images are stored */
+//#define WEIGHTS_FILENAME "/home/fpicarras/Desktop/ist-work/hwsw-IST-24-25/lab2/prof_sources/simple_cnn/weights.bin"   /* file where the weights are stored */
+//#define IMAGES_FILENAME  "/home/fpicarras/Desktop/ist-work/hwsw-IST-24-25/lab2/prof_sources/simple_cnn/images.bin" /* file where the images are stored */
 /* =========================== END OF TEST SET CONFIGURATION =========================== */
 
 /* ============================ START OF MODEL CONFIGURATION =========================== */
