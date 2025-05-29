@@ -2,9 +2,11 @@
 #ifndef __UTILS_H__
 #define __UTILS_H__
 
+#include <stdint.h>
+
 int float2fixed(float f, int scale);
 
-float fixed2float(int i, int scale);
+float fixed2float(int64_t i, int64_t scale);
 
 /**
  * Prints first n elements of floating-point matrix for debug purposes.

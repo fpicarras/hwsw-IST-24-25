@@ -6,8 +6,8 @@ int float2fixed(float f, int scale) {
   return (int)(f * (float)(1 << scale) + 0.5F);
 }
 
-float fixed2float(int i, int scale) {
-  return (float)i / (float)(1 << scale);
+float fixed2float(int64_t i, int64_t scale) {
+  return (float)i / (float)((int64_t) 1 << scale);
 }
 
 void print_fp(float *matrix, int n, char *description) {

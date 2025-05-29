@@ -21,9 +21,10 @@ void gemm(const float *A, const float *B, float *C, int rowsA, int colsA, int co
 void gemmBias(const int16_t *A, const int32_t *B, const int16_t* bias, float *C, int rowsA, int colsA, int colsB) {
     for (int i = 0; i < rowsA; i++)
         for (int j = 0; j < colsB; j++) {
-            C[i * colsB + j] = fixed2float(bias[i], 15);
+            int64_t acc = (int64_t) bias[i] << 26;
             for (int k = 0; k < colsA; k++)
-                C[i * colsB + j] += fixed2float(A[i * colsA + k], 15) * fixed2float(B[k * colsB + j], 26);
+                acc += (int64_t) A[i * colsA + k] * B[k * colsB + j];
+            C[i * colsB + j] = fixed2float(acc, 41);
         }
 }
 

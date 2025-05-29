@@ -76,7 +76,7 @@ void forward_connected_layer_int(const int32_t *X, const int16_t * int_params, f
          mbias,
          (float *) Y,
          N_CLASSES,
-         POOL_OUTPUT_HEIGHT * POOL_OUTPUT_WIDTH * CONV_OFM_NUMBER,
+         POOL_OUTPUT_SIZE,
          1);
 }
 
