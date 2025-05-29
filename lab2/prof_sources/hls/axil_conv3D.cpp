@@ -13,6 +13,7 @@ static data_t image_green[IMAGE_HEIGHT*IMAGE_WIDTH/IMAGES_PER_DATA];
 static data_t image_blue[IMAGE_HEIGHT*IMAGE_WIDTH/IMAGES_PER_DATA];
 static data_t weights[IMAGE_CHANNELS*CONV_OFM_NUMBER*CONV_KERNEL_SIZE*CONV_KERNEL_SIZE/WEIGHTS_PER_DATA];
 static data_t bias[CONV_OFM_NUMBER/BIAS_PER_DATA];
+static bool weights_ready = false;
 
   strmin_t tmp;
   /* Input Image Stream */
@@ -33,18 +34,22 @@ static data_t bias[CONV_OFM_NUMBER/BIAS_PER_DATA];
   }
 
   /* Bias Stream */
-  loop_bias:
-  for(int i = 0; i < CONV_OFM_NUMBER/BIAS_PER_DATA; i ++) {
-    tmp = strm_in.read();
-    bias[i] = tmp.data;
+  if(!weights_ready) {
+    loop_bias:
+    for(int i = 0; i < CONV_OFM_NUMBER/BIAS_PER_DATA; i ++) {
+      tmp = strm_in.read();
+      bias[i] = tmp.data;
+    }
+
+    /* Weights Stream */
+    loop_weights:
+    for(int i = 0; i < IMAGE_CHANNELS*CONV_OFM_NUMBER*CONV_KERNEL_SIZE*CONV_KERNEL_SIZE/WEIGHTS_PER_DATA; i ++) {
+      tmp = strm_in.read();
+      weights[i] = tmp.data;
+    }
   }
 
-  /* Weights Stream */
-  loop_weights:
-  for(int i = 0; i < IMAGE_CHANNELS*CONV_OFM_NUMBER*CONV_KERNEL_SIZE*CONV_KERNEL_SIZE/WEIGHTS_PER_DATA; i ++) {
-    tmp = strm_in.read();
-    weights[i] = tmp.data;
-  }
+  weights_ready = true;
 
   output_t maxpool[POOL_OUTPUT_WIDTH];
   loop_conv:

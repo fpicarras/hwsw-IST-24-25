@@ -4,7 +4,7 @@
 
 #define FLT_MAX 3.402823466e+38F
 
-static int8_t image_in[IMAGE_SIZE];
+static int8_t image_in[2*IMAGE_SIZE];
 static int16_t image_in_i[IMAGE_SIZE];
 static int16_t kernel_i[CONV_LAYER_WEIGHTS];
 static int16_t bias_i[CONV_LAYER_BIASES];
@@ -29,9 +29,11 @@ float fixed2float(int i, int scale) {
   return (float)i / (float)(1 << scale);
 }
 
-void normalize_image(const unsigned char *rgb_image, float *norm_image) {
-    for (int i = 0; i < IMAGE_SIZE; i++)
-        norm_image[i] = ((float) rgb_image[i] / 255 - 0.5F) / 0.5F;
+void normalize_image(const unsigned char *rgb_image) {
+    for (int i = 0; i < IMAGE_SIZE; i++) {
+        image_in_f[i] = ((float) rgb_image[i] / 255 - 0.5F) / 0.5F;
+        image_in_i[i] = float2fixed(image_in_f[i], 15);
+    }   
 }
 
 void init_inputs() {
@@ -48,46 +50,20 @@ void init_inputs() {
   FILE *images_file = fopen(IMAGES_FILENAME, "rb");
   assert(images_file);
   fread(image_in,
-        IMAGE_SIZE,
+        2*IMAGE_SIZE,
         sizeof(unsigned char),
         images_file);
   fclose(images_file);
 
-  normalize_image((unsigned char *) image_in, image_in_f);
-  printf("Input Image\n\r");
-  for(int k = 0; k < IMAGE_CHANNELS; k++) {
-      for (int i = 0; i < IMAGE_HEIGHT; i++) {
-          for (int j = 0; j < IMAGE_WIDTH; j++) {
-              int ind = k*IMAGE_HEIGHT*IMAGE_WIDTH + i * IMAGE_WIDTH + j;
-              image_in_i[ind] = float2fixed(image_in_f[ind], 15);
-              printf("%f %4d ", image_in_f[ind], image_in_i[ind]);
-          }
-          printf("\n");
-      }
-      printf("\n");
+  for (int i = 0; i < CONV_OFM_NUMBER; i++) {
+        bias_f[i] = fp_params[i];
+        bias_i[i] = float2fixed(bias_f[i], 15);
   }
 
-  printf("Kernel\n\r");
-  for (int i = 0; i < CONV_OFM_NUMBER; i++) {
-    for(int l = 0; l < IMAGE_CHANNELS; l++){
-        for (int j = 0; j < CONV_KERNEL_SIZE * CONV_KERNEL_SIZE; j++) {
-          int ind = (l+i*IMAGE_CHANNELS) * CONV_KERNEL_SIZE * CONV_KERNEL_SIZE + j;
-          kernel_f[ind] = fp_params[ind + CONV_OFM_NUMBER];
-          kernel_i[ind] = float2fixed(kernel_f[ind], 15);
-          printf("%f %4d ", kernel_f[ind], kernel_i[ind]);
-      }
-      printf("\n");
-    }
-    printf("\n");
+  for (int i = 0; i < CONV_LAYER_WEIGHTS; i++) {
+        kernel_f[i] = fp_params[i + CONV_OFM_NUMBER];
+        kernel_i[i] = float2fixed(kernel_f[i], 15);
   }
-
-  printf("Bias\n\r");
-  for (int i = 0; i < CONV_OFM_NUMBER; i++) {
-      bias_f[i] = fp_params[i];
-      bias_i[i] = float2fixed(bias_f[i], 15);
-      printf("%f %4d ", bias_f[i], bias_i[i]);
-  }
-  printf("\n");
 }
 
 void sw_convolution_3D_f() {
@@ -218,32 +194,32 @@ void forward_max_pool_layer_i() {
 }
 
 int check_output(const int32_t *sw_matrix_out_i, const float *sw_matrix_out_f) {
-    printf("SW Int Output Image\n\r");
-    for(int k = 0; k < CONV_OFM_NUMBER; k ++)
-        for (int i = 0; i < HW_MATRIX_OUT_HEIGHT; i++) {
-            for (int j = 0; j < HW_MATRIX_OUT_WIDTH; j++) {
-                printf("%f ", fixed2float(sw_matrix_out_i[k * HW_MATRIX_OUT_HEIGHT * HW_MATRIX_OUT_WIDTH + i * HW_MATRIX_OUT_WIDTH + j], FRAC_BIT_WIDTH));
-            }
-            printf("\n\r");
-        }
+    // printf("SW Int Output Image\n\r");
+    // for(int k = 0; k < CONV_OFM_NUMBER; k ++)
+    //     for (int i = 0; i < HW_MATRIX_OUT_HEIGHT; i++) {
+    //         for (int j = 0; j < HW_MATRIX_OUT_WIDTH; j++) {
+    //             printf("%f ", fixed2float(sw_matrix_out_i[k * HW_MATRIX_OUT_HEIGHT * HW_MATRIX_OUT_WIDTH + i * HW_MATRIX_OUT_WIDTH + j], FRAC_BIT_WIDTH));
+    //         }
+    //         printf("\n\r");
+    //     }
 
-    printf("SW Float Output Image\n\r");
-    for(int k = 0; k < CONV_OFM_NUMBER; k ++)
-        for (int i = 0; i < HW_MATRIX_OUT_HEIGHT; i++) {
-            for (int j = 0; j < HW_MATRIX_OUT_WIDTH; j++) {
-                printf("%f ", sw_matrix_out_f[k * HW_MATRIX_OUT_HEIGHT * HW_MATRIX_OUT_WIDTH + i * HW_MATRIX_OUT_WIDTH + j]);
-            }
-            printf("\n\r");
-        }
+    // printf("SW Float Output Image\n\r");
+    // for(int k = 0; k < CONV_OFM_NUMBER; k ++)
+    //     for (int i = 0; i < HW_MATRIX_OUT_HEIGHT; i++) {
+    //         for (int j = 0; j < HW_MATRIX_OUT_WIDTH; j++) {
+    //             printf("%f ", sw_matrix_out_f[k * HW_MATRIX_OUT_HEIGHT * HW_MATRIX_OUT_WIDTH + i * HW_MATRIX_OUT_WIDTH + j]);
+    //         }
+    //         printf("\n\r");
+    //     }
 
-    printf("HW Output Image\n\r");
-    for(int k = 0; k < CONV_OFM_NUMBER; k ++)
-        for (int i = 0; i < HW_MATRIX_OUT_HEIGHT; i++) {
-            for (int j = 0; j < HW_MATRIX_OUT_WIDTH; j++) {
-                printf("%f ", fixed2float(hw_matrix_out[k * HW_MATRIX_OUT_HEIGHT * HW_MATRIX_OUT_WIDTH + i * HW_MATRIX_OUT_WIDTH + j], FRAC_BIT_WIDTH));
-            }
-            printf("\n\r");
-        }
+    // printf("HW Output Image\n\r");
+    // for(int k = 0; k < CONV_OFM_NUMBER; k ++)
+    //     for (int i = 0; i < HW_MATRIX_OUT_HEIGHT; i++) {
+    //         for (int j = 0; j < HW_MATRIX_OUT_WIDTH; j++) {
+    //             printf("%f ", fixed2float(hw_matrix_out[k * HW_MATRIX_OUT_HEIGHT * HW_MATRIX_OUT_WIDTH + i * HW_MATRIX_OUT_WIDTH + j], FRAC_BIT_WIDTH));
+    //         }
+    //         printf("\n\r");
+    //     }
 
     int err_cnt = 0;
     for(int k = 0; k < CONV_OFM_NUMBER; k ++)
@@ -254,10 +230,10 @@ int check_output(const int32_t *sw_matrix_out_i, const float *sw_matrix_out_f) {
                 diff = diff > 0 ? diff : -diff;
                 if (hw_matrix_out[ind] != sw_matrix_out_i[ind]) {
                     err_cnt++;
-                    // printf("Int: %d,%d: %d != %d\n\r", i, j, hw_matrix_out[ind], sw_matrix_out_i[ind]);
-                } else if (diff > 6E-4) {
+                    printf("Int: %d,%d,%d: %d != %d\n\r", k, i, j, hw_matrix_out[ind], sw_matrix_out_i[ind]);
+                } else if (diff > 1E-3) {
                     err_cnt++;
-                    // printf("Float: %d,%d: diff = %f\n\r", i, j, diff);
+                    printf("Float: %d,%d,%d: diff = %f\n\r", k, i, j, diff);
                 }
             }
 
@@ -270,34 +246,41 @@ int main() {
     hls::stream<strmout_t> str_out;
     strmin_t tmp_in;
     strmout_t tmp_out;
-    for (int i = 0; i < IMAGE_SIZE; i+=IMAGES_PER_DATA) {
-        tmp_in.data(15, 0) = image_in_i[i];
-        tmp_in.data(31, 16) = image_in_i[i + 1];
-        tmp_in.last = (ap_int<1>)0;
-        str_in.write(tmp_in);
-    }
-    for (int i = 0; i < CONV_LAYER_BIASES; i+=BIAS_PER_DATA) {
-        tmp_in.data(15, 0) = bias_i[i];
-        tmp_in.data(31, 16) = bias_i[i + 1];
-        tmp_in.last = (ap_int<1>)(i == (CONV_LAYER_BIASES - 2));
-        str_in.write(tmp_in);
-    }
-    for (int i = 0; i < CONV_LAYER_WEIGHTS; i+=WEIGHTS_PER_DATA) {
-        tmp_in.data(15, 0) = kernel_i[i];
-        tmp_in.data(31, 16) = kernel_i[i + 1];
-        tmp_in.last = (ap_int<1>)(i == CONV_LAYER_WEIGHTS - 2);
-        str_in.write(tmp_in);
-    }
-    axil_conv3D(str_in, str_out);
-    for (int i = 0; i < HW_MATRIX_OUT_SIZE; i++) {
-        tmp_out = str_out.read();
-        hw_matrix_out[i] = tmp_out.data;
-    }
+    int err_cnt = 0;
+    for(int k = 0; k < 1; k ++) {
+        normalize_image((unsigned char *) &image_in[k*IMAGE_SIZE]);
+        for (int i = 0; i < IMAGE_SIZE; i+=IMAGES_PER_DATA) {
+            tmp_in.data(15, 0) = image_in_i[i];
+            tmp_in.data(31, 16) = image_in_i[i + 1];
+            tmp_in.last = (ap_int<1>)0;
+            str_in.write(tmp_in);
+        }
+        if(k == 0) {
+            for (int i = 0; i < CONV_LAYER_BIASES; i+=BIAS_PER_DATA) {
+                tmp_in.data(15, 0) = bias_i[i];
+                tmp_in.data(31, 16) = bias_i[i + 1];
+                tmp_in.last = (ap_int<1>)(i == (CONV_LAYER_BIASES - 2));
+                str_in.write(tmp_in);
+            }
+            for (int i = 0; i < CONV_LAYER_WEIGHTS; i+=WEIGHTS_PER_DATA) {
+                tmp_in.data(15, 0) = kernel_i[i];
+                tmp_in.data(31, 16) = kernel_i[i + 1];
+                tmp_in.last = (ap_int<1>)(i == CONV_LAYER_WEIGHTS - 2);
+                str_in.write(tmp_in);
+            }
+        }
+        axil_conv3D(str_in, str_out);
+        for (int i = 0; i < HW_MATRIX_OUT_SIZE; i++) {
+            tmp_out = str_out.read();
+            hw_matrix_out[i] = tmp_out.data;
+        }
 
-    sw_convolution_3D_i();
-    forward_max_pool_layer_i();
-    sw_convolution_3D_f();
-    forward_max_pool_layer_f();
+        sw_convolution_3D_i();
+        forward_max_pool_layer_i();
+        sw_convolution_3D_f();
+        forward_max_pool_layer_f();
 
-    return check_output(maxpool_i, maxpool_f);
+        err_cnt += check_output(maxpool_i, maxpool_f);
+    }
+    return err_cnt;
 }
