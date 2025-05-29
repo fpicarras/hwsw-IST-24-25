@@ -3,6 +3,7 @@
 #define __CNN_SW_HW_H__
 
 #include "app_params.h"
+#include <stdbool.h>
 
 #ifdef EMBEDDED
 #include "xaxidma.h"
