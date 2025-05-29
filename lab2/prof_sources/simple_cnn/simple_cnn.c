@@ -26,9 +26,6 @@
 #include "xaxidma.h"
 #endif
 
-static char image_class[10][9] = {"Airplane", "Bird", "Car", "Cat", "Deer", "Dog",
-                                  "Horse", "Monkey", "Ship", "Truck"};
-
 void init_memory(addresses * addr) {
     /* Check if memory reserved for loading files is enough */
     assert(MEM_BIN_IMAGES >= MEM_CH_IMAGES);
@@ -93,39 +90,7 @@ int main() {
     /* Performs memory assignment */
     init_memory(&addr);
 
-    /* Classify first NUMBER_OF_IMAGES_TO_CLASSIFY from the dataset */
-    for (int i = FIRST_IMAGE_TO_CLASSIFY - 1; i < FIRST_IMAGE_TO_CLASSIFY + NUMBER_OF_IMAGES_TO_CLASSIFY - 1; i++) {
-        unsigned char *image_in = (unsigned char *) addr.ch_images + i * IMAGE_SIZE;
-        /* normalize to [-1, 1] */
-        normalize_image((unsigned char *) image_in, (float *) addr.fp_image);
-        image_to_ip((float *) addr.fp_image, (int16_t * ) addr.image_ip);
-
-#ifdef PRINT_IMAGE
-        print_ppm(image_in);
-#endif // PRINT_IMAGE
-
-        int prediction_sw = predict_class_sw((float*) addr.fp_image, &addr);
-
-        int prediction = predict_class_sw_hw((int16_t *) addr.image_ip, &addr);
-
-        printf("# Image    SW %03d -> Class=%d (%8s) %3.0f%% [ ",
-               i + 1, prediction_sw,
-               image_class[prediction_sw],
-               addr.matSoftM[prediction_sw] * 100);
-
-        for (int i = 0; i < N_CLASSES; i++)
-            printf("%3.0f%% ", addr.matSoftM[i] * 100);
-
-        printf(prediction_sw == i % N_CLASSES ? "] OK\n\r" : "] Prediction Error\n\r");
-
-        printf("# Image HW-SW %03d -> Class=%d (%8s) %3.0f%% [ ",
-               i + 1, prediction,
-               image_class[prediction],
-               addr.matSoftMax[prediction] * 100);
-
-        for (int i = 0; i < N_CLASSES; i++)
-            printf("%3.0f%% ", addr.matSoftMax[i] * 100);
-
-        printf(prediction == i % N_CLASSES ? "] OK\n\r" : "] Prediction Error\n\r");
-    }
+    predict_images_sw(&addr);
+    predict_images_hw_sw(&addr);
+    return 0;
 }

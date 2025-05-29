@@ -82,6 +82,12 @@
 static unsigned char mem_array[MEM_TOTAL_RESERVED];
 #define MEM_BASE_ADDR mem_array
 #endif // EMBEDDED
+
+#ifdef __IMAGES_CLASSES__
+static char image_class[10][9] = {"Airplane", "Bird", "Car", "Cat", "Deer", "Dog",
+                                  "Horse", "Monkey", "Ship", "Truck"};
+#endif // __IMAGES_CLASSES__
+
 /* ============================== END OF MEMORY ASSIGNMENT ============================= */
 
 /**

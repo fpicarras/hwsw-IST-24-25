@@ -8,7 +8,9 @@
  * Executes all layers of the CNN sequentially and returns the predicted class for a given sample.
  * @return Predicted class for a given sample
  */
-int predict_class_sw(const float * image, addresses * addr);
+int predict_class_sw(addresses * addr);
+
+void predict_images_sw(addresses * addr);
 
 /**
  * Computes auxiliary matrix to perform convolution as matrix multiplication using GEMM kernel.
