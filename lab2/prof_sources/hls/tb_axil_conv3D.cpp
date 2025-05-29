@@ -250,22 +250,25 @@ int main() {
     for(int k = 0; k < 2; k ++) {
         if(k == 0) {
             for (int i = 0; i < CONV_LAYER_BIASES; i+=BIAS_PER_DATA) {
-                tmp_in.data(15, 0) = bias_i[i];
-                tmp_in.data(31, 16) = bias_i[i + 1];
+                for(int j = 0; j < IMAGES_PER_DATA; j ++) {
+                    tmp_in.data((j+1)*(IMAGE_BIT_WIDTH) - 1, j*IMAGE_BIT_WIDTH) = bias_i[i + j];
+                }
                 tmp_in.last = (ap_int<1>)0;
                 str_in.write(tmp_in);
             }
             for (int i = 0; i < CONV_LAYER_WEIGHTS; i+=WEIGHTS_PER_DATA) {
-                tmp_in.data(15, 0) = kernel_i[i];
-                tmp_in.data(31, 16) = kernel_i[i + 1];
+                for(int j = 0; j < IMAGES_PER_DATA; j ++) {
+                    tmp_in.data((j+1)*(IMAGE_BIT_WIDTH) - 1, j*IMAGE_BIT_WIDTH) = kernel_i[i + j];
+                }
                 tmp_in.last = (ap_int<1>)0;
                 str_in.write(tmp_in);
             }
         }
         normalize_image((unsigned char *) &image_in[k*IMAGE_SIZE]);
         for (int i = 0; i < IMAGE_SIZE; i+=IMAGES_PER_DATA) {
-            tmp_in.data(15, 0) = image_in_i[i];
-            tmp_in.data(31, 16) = image_in_i[i + 1];
+            for(int j = 0; j < IMAGES_PER_DATA; j ++) {
+                tmp_in.data((j+1)*(IMAGE_BIT_WIDTH) - 1, j*IMAGE_BIT_WIDTH) = image_in_i[i + j];
+            }
             tmp_in.last = (ap_int<1>)(i == IMAGE_SIZE - IMAGES_PER_DATA);
             str_in.write(tmp_in);
         }
