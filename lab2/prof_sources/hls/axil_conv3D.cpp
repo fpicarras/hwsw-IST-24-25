@@ -153,7 +153,7 @@ static bool weights_ready = false;
           acc_sat = acc;
 
         strmout_t chunk_out;
-        chunk_out.last = ((i == CONV_OUTPUT_HEIGHT - 1) && (j == CONV_OUTPUT_WIDTH - 1) && (l == CONV_OFM_NUMBER - 1));
+        chunk_out.last = ((i == CONV_OUTPUT_HEIGHT - 2) && (j == CONV_OUTPUT_WIDTH - 2) && (l == CONV_OFM_NUMBER - 1));
         chunk_out.data = acc_sat;
         chunk_out.keep = 0xF;
         chunk_out.strb = 0xF;

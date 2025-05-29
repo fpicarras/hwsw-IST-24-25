@@ -8,11 +8,11 @@
 #include "cnn_sw.h"
 #include "simple_cnn.h"
 
-int predict_class_hw_sw(int16_t * image, addresses * addr) {
+int predict_class_hw_sw(int16_t * image, addresses * addr, bool first) {
 #if defined(EMBEDDED) && defined(PRINT_TIME_PER_LAYER)
     double t_start = xilGetMilliseconds();
 #endif
-    forward_convolutional_layer_hw(image, (int16_t *)addr->int_params, (int32_t *)addr->matConvPool);
+    forward_convolutional_layer_hw(image, (int16_t *)addr->int_params, (int32_t *)addr->matConvPool, first);
 #if defined(EMBEDDED) && defined(PRINT_TIME_PER_LAYER)
     double t_conv = xilGetMilliseconds();
 #endif
@@ -34,7 +34,7 @@ int predict_class_hw_sw(int16_t * image, addresses * addr) {
     return predicted_class;
 }
 
-void forward_convolutional_layer_hw(const int16_t * image, const int16_t *int_params, volatile int32_t * matConvPool) {  
+void forward_convolutional_layer_hw(const int16_t * image, const int16_t *int_params, volatile int32_t * matConvPool, bool first) {  
     Xil_DCacheFlushRange((INTPTR)image, sizeof(int16_t)*IMAGE_SIZE);  
     // Initialize DMA
     XAxiDma dma;
@@ -45,14 +45,15 @@ void forward_convolutional_layer_hw(const int16_t * image, const int16_t *int_pa
     XAxiDma_IntrDisable(&dma, XAXIDMA_IRQ_ALL_MASK, XAXIDMA_DEVICE_TO_DMA);
     XAxiDma_IntrDisable(&dma, XAXIDMA_IRQ_ALL_MASK, XAXIDMA_DMA_TO_DEVICE);
 
-    // Set Inputs on all channels
-    XAxiDma_SimpleTransfer(&dma, (UINTPTR) image, sizeof(int16_t)*IMAGE_SIZE, XAXIDMA_DMA_TO_DEVICE);
+    if(first) {
+        XAxiDma_SimpleTransfer(&dma, (UINTPTR) int_params, sizeof(int16_t)*(CONV_LAYER_WEIGHTS + CONV_LAYER_BIASES), XAXIDMA_DMA_TO_DEVICE);
+    }
 
     XAxiDma_SimpleTransfer(&dma, (UINTPTR) matConvPool, sizeof(int32_t)*HW_MATRIX_OUT_SIZE, XAXIDMA_DEVICE_TO_DMA);
 
-    while (XAxiDma_Busy(&dma,XAXIDMA_DMA_TO_DEVICE));
+    while (first && XAxiDma_Busy(&dma,XAXIDMA_DMA_TO_DEVICE));
 
-    XAxiDma_SimpleTransfer(&dma, (UINTPTR) int_params, sizeof(int16_t)*(CONV_LAYER_WEIGHTS + CONV_LAYER_BIASES), XAXIDMA_DMA_TO_DEVICE);
+    XAxiDma_SimpleTransfer(&dma, (UINTPTR) image, sizeof(int16_t)*IMAGE_SIZE, XAXIDMA_DMA_TO_DEVICE);
 
     while (XAxiDma_Busy(&dma, XAXIDMA_DEVICE_TO_DMA));
 
@@ -92,7 +93,7 @@ void predict_images_hw_sw(addresses * addr) {
         print_ppm(image_in);
 #endif // PRINT_IMAGE
 
-        int prediction = predict_class_hw_sw((int16_t *) &addr->int_images[i*IMAGE_SIZE], addr);
+        int prediction = predict_class_hw_sw((int16_t *) &addr->int_images[i*IMAGE_SIZE], addr, i == 0);
 
         printf("# Image HW-SW %03d -> Class=%d (%8s) %3.0f%% [ ",
                i + 1, prediction,

@@ -247,18 +247,18 @@ int main() {
     strmin_t tmp_in;
     strmout_t tmp_out;
     int err_cnt = 0;
-    for(int k = 0; k < 1; k ++) {
+    for(int k = 0; k < 2; k ++) {
         if(k == 0) {
             for (int i = 0; i < CONV_LAYER_BIASES; i+=BIAS_PER_DATA) {
                 tmp_in.data(15, 0) = bias_i[i];
                 tmp_in.data(31, 16) = bias_i[i + 1];
-                tmp_in.last = (ap_int<1>)(i == (CONV_LAYER_BIASES - 2));
+                tmp_in.last = (ap_int<1>)0;
                 str_in.write(tmp_in);
             }
             for (int i = 0; i < CONV_LAYER_WEIGHTS; i+=WEIGHTS_PER_DATA) {
                 tmp_in.data(15, 0) = kernel_i[i];
                 tmp_in.data(31, 16) = kernel_i[i + 1];
-                tmp_in.last = (ap_int<1>)(i == CONV_LAYER_WEIGHTS - 2);
+                tmp_in.last = (ap_int<1>)0;
                 str_in.write(tmp_in);
             }
         }
@@ -266,13 +266,16 @@ int main() {
         for (int i = 0; i < IMAGE_SIZE; i+=IMAGES_PER_DATA) {
             tmp_in.data(15, 0) = image_in_i[i];
             tmp_in.data(31, 16) = image_in_i[i + 1];
-            tmp_in.last = (ap_int<1>)0;
+            tmp_in.last = (ap_int<1>)(i == IMAGE_SIZE - IMAGES_PER_DATA);
             str_in.write(tmp_in);
         }
         axil_conv3D(str_in, str_out);
-        for (int i = 0; i < HW_MATRIX_OUT_SIZE; i++) {
+        for (int i = 0; ; i++) {
             tmp_out = str_out.read();
             hw_matrix_out[i] = tmp_out.data;
+            if(tmp_out.last) {
+                break;
+            }
         }
 
         sw_convolution_3D_i();
