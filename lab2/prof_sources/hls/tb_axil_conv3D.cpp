@@ -4,7 +4,7 @@
 
 #define FLT_MAX 3.402823466e+38F
 
-static int8_t image_in[2*IMAGE_SIZE];
+static int8_t image_in[N_IMAGES*IMAGE_SIZE];
 static int16_t image_in_i[IMAGE_SIZE];
 static int16_t kernel_i[CONV_LAYER_WEIGHTS];
 static int16_t bias_i[CONV_LAYER_BIASES];
@@ -50,7 +50,7 @@ void init_inputs() {
   FILE *images_file = fopen(IMAGES_FILENAME, "rb");
   assert(images_file);
   fread(image_in,
-        2*IMAGE_SIZE,
+        N_IMAGES*IMAGE_SIZE,
         sizeof(unsigned char),
         images_file);
   fclose(images_file);
@@ -236,7 +236,6 @@ int check_output(const int32_t *sw_matrix_out_i, const float *sw_matrix_out_f) {
                     printf("Float: %d,%d,%d: diff = %f\n\r", k, i, j, diff);
                 }
             }
-
     return err_cnt;
 }
 
@@ -247,29 +246,30 @@ int main() {
     strmin_t tmp_in;
     strmout_t tmp_out;
     int err_cnt = 0;
-    for(int k = 0; k < 2; k ++) {
+    for(int k = 0; k < N_IMAGES; k ++) {
         if(k == 0) {
             for (int i = 0; i < CONV_LAYER_BIASES; i+=BIAS_PER_DATA) {
-                for(int j = 0; j < IMAGES_PER_DATA; j ++) {
-                    tmp_in.data((j+1)*(IMAGE_BIT_WIDTH) - 1, j*IMAGE_BIT_WIDTH) = bias_i[i + j];
+                for(int j = 0; j < BIAS_PER_DATA; j ++) {
+                    tmp_in.data((j+1)*(BIAS_BIT_WIDTH) - 1, j*BIAS_BIT_WIDTH) = bias_i[i + j];
                 }
                 tmp_in.last = (ap_int<1>)0;
                 str_in.write(tmp_in);
             }
             for (int i = 0; i < CONV_LAYER_WEIGHTS; i+=WEIGHTS_PER_DATA) {
-                for(int j = 0; j < IMAGES_PER_DATA; j ++) {
-                    tmp_in.data((j+1)*(IMAGE_BIT_WIDTH) - 1, j*IMAGE_BIT_WIDTH) = kernel_i[i + j];
+                for(int j = 0; j < WEIGHTS_PER_DATA; j ++) {
+                    tmp_in.data((j+1)*(WEIGHT_BIT_WIDTH) - 1, j*WEIGHT_BIT_WIDTH) = kernel_i[i + j];
                 }
                 tmp_in.last = (ap_int<1>)0;
                 str_in.write(tmp_in);
             }
         }
         normalize_image((unsigned char *) &image_in[k*IMAGE_SIZE]);
-        for (int i = 0; i < IMAGE_SIZE; i+=IMAGES_PER_DATA) {
-            for(int j = 0; j < IMAGES_PER_DATA; j ++) {
-                tmp_in.data((j+1)*(IMAGE_BIT_WIDTH) - 1, j*IMAGE_BIT_WIDTH) = image_in_i[i + j];
+
+        for (int i = 0; i < IMAGE_SIZE; i+=PIXEL_PER_DATA) {
+            for(int j = 0; j < PIXEL_PER_DATA; j ++) {
+                tmp_in.data((j+1)*(PIXEL_BIT_WIDTH) - 1, j*PIXEL_BIT_WIDTH) = image_in[k*IMAGE_SIZE + i + j];
             }
-            tmp_in.last = (ap_int<1>)(i == IMAGE_SIZE - IMAGES_PER_DATA);
+            tmp_in.last = (ap_int<1>)(i == IMAGE_SIZE - PIXEL_PER_DATA);
             str_in.write(tmp_in);
         }
         axil_conv3D(str_in, str_out);

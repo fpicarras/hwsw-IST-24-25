@@ -8,15 +8,15 @@
 
 /* ========================== START OF TEST SET CONFIGURATION ========================== */
 
-#define N_IMAGES 1                 /* number of images in the binary file */
+#define N_IMAGES 1                   /* number of images in the binary file */
 #define IMAGE_HEIGHT 88              /* width of the images */
 #define IMAGE_WIDTH IMAGE_HEIGHT     /* height of the images */
 #define IMAGE_CHANNELS 3             /* number of channels (red + green + blue) */
 #define N_CLASSES 10                 /* number of possible classes */
-#define WEIGHTS_FILENAME "/home/joao-pedro/Documents/Tecnico/Y1-P4/HW/Labs/hwsw-IST-24-25/lab2/prof_sources/simple_cnn/weights.bin"   /* file where the weights are stored */
-#define IMAGES_FILENAME "/home/joao-pedro/Documents/Tecnico/Y1-P4/HW/Labs/hwsw-IST-24-25/lab2/prof_sources/simple_cnn/images.bin" /* file where the images are stored */
-//#define WEIGHTS_FILENAME "/home/fpicarras/Desktop/ist-work/hwsw-IST-24-25/lab2/prof_sources/simple_cnn/weights.bin"   /* file where the weights are stored */
-//#define IMAGES_FILENAME  "/home/fpicarras/Desktop/ist-work/hwsw-IST-24-25/lab2/prof_sources/simple_cnn/images.bin" /* file where the images are stored */
+//#define WEIGHTS_FILENAME "/home/joao-pedro/Documents/Tecnico/Y1-P4/HW/Labs/hwsw-IST-24-25/lab2/prof_sources/simple_cnn/weights.bin"   /* file where the weights are stored */
+//#define IMAGES_FILENAME "/home/joao-pedro/Documents/Tecnico/Y1-P4/HW/Labs/hwsw-IST-24-25/lab2/prof_sources/simple_cnn/images.bin" /* file where the images are stored */
+#define WEIGHTS_FILENAME "weights.bin"   /* file where the weights are stored */
+#define IMAGES_FILENAME  "images.bin" /* file where the images are stored */
 /* =========================== END OF TEST SET CONFIGURATION =========================== */
 
 /* ============================ START OF MODEL CONFIGURATION =========================== */
@@ -30,6 +30,7 @@
 #define WEIGHT_BIT_WIDTH 16
 #define BIAS_BIT_WIDTH 16
 #define IMAGE_BIT_WIDTH 16
+#define PIXEL_BIT_WIDTH 8
 #define OUTPUT_BIT_WIDTH 32
 #define DATA_BIT_WIDTH 32
 #define INTEGER_BIT_WIDTH 5
@@ -59,7 +60,7 @@ typedef hls::axis<output_t, 0, 0, 0> strmout_t;
 #define FC_LAYER_WEIGHTS POOL_OUTPUT_WIDTH * POOL_OUTPUT_HEIGHT * CONV_OFM_NUMBER * N_CLASSES
 #define FC_LAYER_BIASES N_CLASSES
 #define TOTAL_PARAMS (CONV_LAYER_WEIGHTS + CONV_LAYER_BIASES + FC_LAYER_WEIGHTS + FC_LAYER_BIASES)
-#define IMAGES_PER_DATA (DATA_BIT_WIDTH/IMAGE_BIT_WIDTH)
+#define PIXEL_PER_DATA (DATA_BIT_WIDTH/PIXEL_BIT_WIDTH)
 #define WEIGHTS_PER_DATA (DATA_BIT_WIDTH/WEIGHT_BIT_WIDTH)
 #define BIAS_PER_DATA (DATA_BIT_WIDTH/BIAS_BIT_WIDTH)
 #define OUTPUTS_PER_DATA (DATA_BIT_WIDTH/OUTPUT_BIT_WIDTH)

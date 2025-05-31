@@ -8,12 +8,15 @@ void axil_conv3D(hls::stream<strmin_t> &strm_in,
 #pragma HLS interface axis port=strm_in
 #pragma HLS INTERFACE axis port=strm_out
 
-static data_t image_red[IMAGE_HEIGHT*IMAGE_WIDTH/IMAGES_PER_DATA];
-static data_t image_green[IMAGE_HEIGHT*IMAGE_WIDTH/IMAGES_PER_DATA];
-static data_t image_blue[IMAGE_HEIGHT*IMAGE_WIDTH/IMAGES_PER_DATA];
+static image_t image_red[IMAGE_HEIGHT*IMAGE_WIDTH];
+static image_t image_green[IMAGE_HEIGHT*IMAGE_WIDTH];
+static image_t image_blue[IMAGE_HEIGHT*IMAGE_WIDTH];
 static data_t weights[IMAGE_CHANNELS*CONV_OFM_NUMBER*CONV_KERNEL_SIZE*CONV_KERNEL_SIZE/WEIGHTS_PER_DATA];
 static data_t bias[CONV_OFM_NUMBER/BIAS_PER_DATA];
 static bool weights_ready = false;
+
+  float tmp0, tmp1, tmp2, tmp3;
+  int tmp0_i, tmp1_i, tmp2_i, tmp3_i;
 
   strmin_t tmp;
   /* Input Image Stream */
@@ -37,19 +40,46 @@ static bool weights_ready = false;
   weights_ready = true;
 
   loop_red: 
-  for(int i = 0; i < IMAGE_HEIGHT*IMAGE_WIDTH/IMAGES_PER_DATA; i ++) {
+  for(int i = 0; i < IMAGE_HEIGHT*IMAGE_WIDTH; i +=PIXEL_PER_DATA) {
     tmp = strm_in.read();
-    image_red[i] = tmp.data;
+
+    tmp0 = ((float)tmp.data.range(7, 0) / 255.0f - 0.5f) / 0.5f;
+    tmp1 = ((float)tmp.data.range(15, 8) / 255.0f - 0.5f) / 0.5f;
+    tmp2 = ((float)tmp.data.range(23, 16) / 255.0f - 0.5f) / 0.5f;
+    tmp3 = ((float)tmp.data.range(31, 24) / 255.0f - 0.5f) / 0.5f;
+
+    image_red[i]   = (image_t)(tmp0 * (float)(1 << 15) + 0.5f);
+    image_red[i+1] = (image_t)(tmp1 * (float)(1 << 15) + 0.5f);
+    image_red[i+2] = (image_t)(tmp2 * (float)(1 << 15) + 0.5f);
+    image_red[i+3] = (image_t)(tmp3 * (float)(1 << 15) + 0.5f);
   }
   loop_green: 
-  for(int i = 0; i < IMAGE_HEIGHT*IMAGE_WIDTH/IMAGES_PER_DATA; i ++) {
+  for(int i = 0; i < IMAGE_HEIGHT*IMAGE_WIDTH; i +=PIXEL_PER_DATA) {
     tmp = strm_in.read();
-    image_green[i] = tmp.data;
+
+    tmp0 = ((float)tmp.data.range(7, 0) / 255.0f - 0.5f) / 0.5f;
+    tmp1 = ((float)tmp.data.range(15, 8) / 255.0f - 0.5f) / 0.5f;
+    tmp2 = ((float)tmp.data.range(23, 16) / 255.0f - 0.5f) / 0.5f;
+    tmp3 = ((float)tmp.data.range(31, 24) / 255.0f - 0.5f) / 0.5f;
+
+    image_green[i]   = (image_t)(tmp0 * (float)(1 << 15) + 0.5f);
+    image_green[i+1] = (image_t)(tmp1 * (float)(1 << 15) + 0.5f);
+    image_green[i+2] = (image_t)(tmp2 * (float)(1 << 15) + 0.5f);
+    image_green[i+3] = (image_t)(tmp3 * (float)(1 << 15) + 0.5f);
   }
   loop_blue: 
-  for(int i = 0; i < IMAGE_HEIGHT*IMAGE_WIDTH/IMAGES_PER_DATA; i ++) {
+  for(int i = 0; i < IMAGE_HEIGHT*IMAGE_WIDTH; i +=PIXEL_PER_DATA) {
     tmp = strm_in.read();
-    image_blue[i] = tmp.data;
+
+    tmp0 = ((float)tmp.data.range(7, 0) / 255.0f - 0.5f) / 0.5f;
+    tmp1 = ((float)tmp.data.range(15, 8) / 255.0f - 0.5f) / 0.5f;
+    tmp2 = ((float)tmp.data.range(23, 16) / 255.0f - 0.5f) / 0.5f;
+    tmp3 = ((float)tmp.data.range(31, 24) / 255.0f - 0.5f) / 0.5f;
+
+    image_blue[i]   = (image_t)(tmp0 * (float)(1 << 15) + 0.5f);
+    image_blue[i+1] = (image_t)(tmp1 * (float)(1 << 15) + 0.5f);
+    image_blue[i+2] = (image_t)(tmp2 * (float)(1 << 15) + 0.5f);
+    image_blue[i+3] = (image_t)(tmp3 * (float)(1 << 15) + 0.5f);
   }
 
   loop_conv:
@@ -88,10 +118,9 @@ static bool weights_ready = false;
             // x -
             // - -
             int image_1d_idx = image_1d_idx_base + x;
-            int image_1d_idx2 = image_1d_idx & 0x1;
-            image_r = (image_red[image_1d_idx >> 1] >> (image_1d_idx2 << 4)) & 0xFFFF;
-            image_g = (image_green[image_1d_idx >> 1] >> (image_1d_idx2 << 4)) & 0xFFFF;
-            image_b = (image_blue[image_1d_idx >> 1] >> (image_1d_idx2 << 4)) & 0xFFFF;
+            image_r = image_red[image_1d_idx];
+            image_g = image_green[image_1d_idx];
+            image_b = image_blue[image_1d_idx];
             weight_r  = (weights[kernel_1d_idx_r >> 1] >> (kernel_1d_idx2_r << 4)) & 0xFFFF;
             weight_g  = (weights[kernel_1d_idx_g >> 1] >> (kernel_1d_idx2_g << 4)) & 0xFFFF;
             weight_b  = (weights[kernel_1d_idx_b >> 1] >> (kernel_1d_idx2_b << 4)) & 0xFFFF;
@@ -102,10 +131,9 @@ static bool weights_ready = false;
             // - x
             // - -
             image_1d_idx = image_1d_idx_base + x +1;
-            image_1d_idx2 = image_1d_idx & 0x1;
-            image_r = (image_red[image_1d_idx >> 1] >> (image_1d_idx2 << 4)) & 0xFFFF;
-            image_g = (image_green[image_1d_idx >> 1] >> (image_1d_idx2 << 4)) & 0xFFFF;
-            image_b = (image_blue[image_1d_idx >> 1] >> (image_1d_idx2 << 4)) & 0xFFFF;
+            image_r = image_red[image_1d_idx];
+            image_g = image_green[image_1d_idx];
+            image_b = image_blue[image_1d_idx];
             acc1_r += weight_r * image_r;
             acc1_g += weight_g * image_g;
             acc1_b += weight_b * image_b;
@@ -113,10 +141,9 @@ static bool weights_ready = false;
             // - -
             // x -
             image_1d_idx = image_1d_idx_base + x + IMAGE_WIDTH;
-            image_1d_idx2 = image_1d_idx & 0x1;
-            image_r = (image_red[image_1d_idx >> 1] >> (image_1d_idx2 << 4)) & 0xFFFF;
-            image_g = (image_green[image_1d_idx >> 1] >> (image_1d_idx2 << 4)) & 0xFFFF;
-            image_b = (image_blue[image_1d_idx >> 1] >> (image_1d_idx2 << 4)) & 0xFFFF;
+            image_r = image_red[image_1d_idx];
+            image_g = image_green[image_1d_idx];
+            image_b = image_blue[image_1d_idx];
             acc2_r += weight_r * image_r;
             acc2_g += weight_g * image_g;
             acc2_b += weight_b * image_b;
@@ -124,10 +151,9 @@ static bool weights_ready = false;
             // - -
             // - x
             image_1d_idx = image_1d_idx_base + x + IMAGE_WIDTH + 1;
-            image_1d_idx2 = image_1d_idx & 0x1;
-            image_r = (image_red[image_1d_idx >> 1] >> (image_1d_idx2 << 4)) & 0xFFFF;
-            image_g = (image_green[image_1d_idx >> 1] >> (image_1d_idx2 << 4)) & 0xFFFF;
-            image_b = (image_blue[image_1d_idx >> 1] >> (image_1d_idx2 << 4)) & 0xFFFF;
+            image_r = image_red[image_1d_idx];
+            image_g = image_green[image_1d_idx];
+            image_b = image_blue[image_1d_idx];
             acc3_r += weight_r * image_r;
             acc3_g += weight_g * image_g;
             acc3_b += weight_b * image_b;
