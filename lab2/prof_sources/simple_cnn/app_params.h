@@ -60,7 +60,8 @@ typedef struct addresses
   volatile float *matSoftM;          /* output of softmax layer */
   volatile float *vecSoftM;          /* output of softmax layer */
   volatile int16_t *int_params;
-  volatile int32_t *matConvPool;
+  volatile int32_t *matConvPool[2];
+  int matConvPoolInd;
   volatile int64_t *matGemm;
   volatile float *matSoftMax;
   volatile float *vecSoftMax;

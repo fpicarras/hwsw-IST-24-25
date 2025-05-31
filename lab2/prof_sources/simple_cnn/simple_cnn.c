@@ -44,9 +44,12 @@ void init_memory(addresses * addr) {
     addr->matSoftM = (float *) ((unsigned char *) addr->matConnB + MEM_MAT_CONN_B);
 
     addr->int_params = (int16_t*) (MEM_HW_BASE_ADDR);
-    addr->matConvPool = (int32_t*) ((unsigned char *) addr->int_params + MEM_BIN_PARAMS);
-    addr->matGemm = (int64_t*) ((unsigned char*) addr->matConvPool + MEM_MAT_C_POOL);
+    addr->matGemm = (int64_t*) ((unsigned char*) addr->int_params + MEM_BIN_PARAMS);
     addr->matSoftMax = (float*) ((unsigned char*) addr->matGemm + MEM_MAT_CONN2);
+
+    addr->matConvPool[0] = (int32_t*) (CONVPOOL_BASE_ADDR);
+    addr->matConvPool[1] = (int32_t*) (CONVPOOL2_BASE_ADDR);
+    addr->matConvPoolInd = 0;
 
     addr->fp_images = (float *) IMAGES_BASE_ADDR;
     addr->int_images = (int16_t *) ((unsigned char *) addr->fp_images + 4*MEM_BIN_IMAGES);

@@ -22,9 +22,13 @@ void init_sw_pipeline(XAxiDma *dma, addresses * addr) {
     normalize_image16((unsigned char *) &addr->ch_images[FIRST_IMAGE_TO_CLASSIFY - 1], (int16_t * ) addr->int_images);
     Xil_DCacheFlushRange((INTPTR)addr->int_images, sizeof(int16_t)*IMAGE_SIZE);
 
-    while (XAxiDma_Busy(dma,XAXIDMA_DMA_TO_DEVICE));
+    while (XAxiDma_Busy(dma, XAXIDMA_DMA_TO_DEVICE));
 
-    XAxiDma_SimpleTransfer(dma, (UINTPTR) addr->int_images, sizeof(int16_t)*IMAGE_SIZE, XAXIDMA_DMA_TO_DEVICE);   
+    XAxiDma_SimpleTransfer(dma, (UINTPTR) addr->int_images, sizeof(int16_t)*IMAGE_SIZE, XAXIDMA_DMA_TO_DEVICE);
+
+    XAxiDma_SimpleTransfer(dma, (UINTPTR) addr->matConvPool[addr->matConvPoolInd], sizeof(int32_t)*HW_MATRIX_OUT_SIZE, XAXIDMA_DEVICE_TO_DMA);
+
+    while (XAxiDma_Busy(dma, XAXIDMA_DMA_TO_DEVICE));
 }
 
 int predict_class_hw_sw(addresses * addr, XAxiDma *dma) {
@@ -35,7 +39,7 @@ int predict_class_hw_sw(addresses * addr, XAxiDma *dma) {
 #if defined(EMBEDDED) && defined(PRINT_TIME_PER_LAYER)
     double t_conv = xilGetMilliseconds();
 #endif
-    forward_connected_layer_int((int32_t *)addr->matConvPool, (int16_t *)addr->int_params, (int64_t * ) addr->matGemm);
+    forward_connected_layer_int((int32_t *)addr->matConvPool[addr->matConvPoolInd], (int16_t *)addr->int_params, (int64_t * ) addr->matGemm);
 #if defined(EMBEDDED) && defined(PRINT_TIME_PER_LAYER)
     double t_conn = xilGetMilliseconds();
 #endif
@@ -55,10 +59,6 @@ int predict_class_hw_sw(addresses * addr, XAxiDma *dma) {
 
 void forward_convolutional_layer_hw(addresses * addr, XAxiDma *dma) {
 
-    XAxiDma_SimpleTransfer(dma, (UINTPTR) addr->matConvPool, sizeof(int32_t)*HW_MATRIX_OUT_SIZE, XAXIDMA_DEVICE_TO_DMA);
-
-    while (XAxiDma_Busy(dma,XAXIDMA_DMA_TO_DEVICE)); 
-
     normalize_image16((unsigned char *) addr->nextImage, (int16_t * ) addr->int_images);
 
     Xil_DCacheFlushRange((INTPTR)addr->int_images, sizeof(int16_t)*IMAGE_SIZE);
@@ -67,7 +67,11 @@ void forward_convolutional_layer_hw(addresses * addr, XAxiDma *dma) {
 
     while (XAxiDma_Busy(dma, XAXIDMA_DEVICE_TO_DMA));
 
-    Xil_DCacheInvalidateRange((UINTPTR) addr->matConvPool, sizeof(int32_t)*HW_MATRIX_OUT_SIZE);
+    XAxiDma_SimpleTransfer(dma, (UINTPTR) addr->matConvPool[(addr->matConvPoolInd + 1) & 0x1], sizeof(int32_t)*HW_MATRIX_OUT_SIZE, XAXIDMA_DEVICE_TO_DMA);
+
+    Xil_DCacheInvalidateRange((UINTPTR) addr->matConvPool[addr->matConvPoolInd], sizeof(int32_t)*HW_MATRIX_OUT_SIZE);
+
+    while (XAxiDma_Busy(dma, XAXIDMA_DMA_TO_DEVICE));
 }
 
 void forward_connected_layer_int(const int32_t *X, const int16_t * int_params, int64_t * Y) {
@@ -80,7 +84,7 @@ void forward_connected_layer_int(const int32_t *X, const int16_t * int_params, i
             (int16_t *) mbias +
             N_CLASSES;
 
-    gemvOptT(matW, X,mbias, Y);
+    gemvOptT(matW, X, mbias, Y);
 }
 
 int forward_softmax_layer_int(const int64_t* A, float* B) {
@@ -108,6 +112,7 @@ void predict_images_hw_sw(addresses * addr) {
         addr->nextImage = &addr->ch_images[ind*IMAGE_SIZE];
         addr->vecSoftMax = &addr->matSoftMax[i*N_CLASSES];
         predictions[i] = predict_class_hw_sw(addr, &dma);
+        addr->matConvPoolInd = (addr->matConvPoolInd + 1) & 0x1;
     }
     #if defined(EMBEDDED) && (defined(PRINT_TIME_PER_LAYER) || defined(PRINT_TOTAL_TIME))
         double t_end = xilGetMilliseconds();
