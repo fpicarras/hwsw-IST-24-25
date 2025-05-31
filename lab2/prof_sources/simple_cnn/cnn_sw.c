@@ -188,7 +188,7 @@ int predict_class_sw(float* image, addresses * addr) {
 #if defined(EMBEDDED) && defined(PRINT_TIME_PER_LAYER)
     double t_conn = xilGetMilliseconds();
 #endif
-    int predicted_class = forward_softmax_layer((float*) addr->matConnB, (float*) addr->matSoftM);
+    int predicted_class = forward_softmax_layer((float*) addr->matConnB, (float*) addr->vecSoftM);
 #if defined(EMBEDDED) && defined(PRINT_TIME_PER_LAYER)
     double t_end = xilGetMilliseconds();
 #endif
@@ -204,6 +204,7 @@ int predict_class_sw(float* image, addresses * addr) {
 }
 
 void predict_images_sw(addresses * addr) {
+    int predictions[N_CLASSES];
     #if defined(EMBEDDED) && (defined(PRINT_TIME_PER_LAYER) || defined(PRINT_TOTAL_TIME))
         double t_start = xilGetMilliseconds();
     #endif
@@ -211,23 +212,19 @@ void predict_images_sw(addresses * addr) {
         /* normalize to [-1, 1] */
         normalize_image((unsigned char *) &addr->ch_images[i * IMAGE_SIZE], (float *) &addr->fp_images[i*IMAGE_SIZE]);
     }
+    #if defined(EMBEDDED) && defined(PRINT_TIME_PER_LAYER)
+        double t_norm = xilGetMilliseconds();
+    #endif
+    #if defined(EMBEDDED) && defined(PRINT_TIME_PER_LAYER)
+        printf("SW-HW Normalization took %.3f ms.\n\r", t_norm - t_start);
+    #endif // PRINT_TIME_PER_LAYER
     /* Classify first NUMBER_OF_IMAGES_TO_CLASSIFY from the dataset */
     for (int i = FIRST_IMAGE_TO_CLASSIFY - 1; i < FIRST_IMAGE_TO_CLASSIFY + NUMBER_OF_IMAGES_TO_CLASSIFY - 1; i++) {
 #ifdef PRINT_IMAGE
         print_ppm(image_in);
 #endif // PRINT_IMAGE
-
-        int prediction = predict_class_sw((float*) &addr->fp_images[i*IMAGE_SIZE], addr);
-
-        printf("# Image    SW %03d -> Class=%d (%8s) %3.0f%% [ ",
-               i + 1, prediction,
-               image_class[prediction],
-               addr->matSoftM[prediction] * 100);
-
-        for (int i = 0; i < N_CLASSES; i++)
-            printf("%3.0f%% ", addr->matSoftM[i] * 100);
-
-        printf(prediction == i % N_CLASSES ? "] OK\n\r" : "] Prediction Error\n\r");
+        addr->vecSoftM = &addr->matSoftM[i*N_CLASSES];
+        predictions[i] = predict_class_sw((float*) &addr->fp_images[i*IMAGE_SIZE], addr);
     }
     #if defined(EMBEDDED) && (defined(PRINT_TIME_PER_LAYER) || defined(PRINT_TOTAL_TIME))
         double t_end = xilGetMilliseconds();
@@ -236,4 +233,15 @@ void predict_images_sw(addresses * addr) {
     #if defined(EMBEDDED) && (defined(PRINT_TIME_PER_LAYER) || defined(PRINT_TOTAL_TIME))
         printf("SW    Images Prediction took %.3f ms.\n\r", t_end - t_start);
     #endif // PRINT_TIME_PER_LAYER
+    for (int i = FIRST_IMAGE_TO_CLASSIFY - 1; i < FIRST_IMAGE_TO_CLASSIFY + NUMBER_OF_IMAGES_TO_CLASSIFY - 1; i++) {
+        printf("# Image    SW %03d -> Class=%d (%8s) %3.0f%% [ ",
+               i + 1, predictions[i],
+               image_class[predictions[i]],
+               addr->matSoftM[i*N_CLASSES + predictions[i]] * 100);
+
+        for (int j = 0; j < N_CLASSES; j++)
+            printf("%3.0f%% ", addr->matSoftM[i*N_CLASSES + j] * 100);
+
+        printf(predictions[i] == i % N_CLASSES ? "] OK\n\r" : "] Prediction Error\n\r");
+    }
 }

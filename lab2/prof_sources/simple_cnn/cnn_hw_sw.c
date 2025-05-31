@@ -36,7 +36,7 @@ int predict_class_hw_sw(addresses * addr, XAxiDma *dma) {
 #if defined(EMBEDDED) && defined(PRINT_TIME_PER_LAYER)
     double t_conn = xilGetMilliseconds();
 #endif
-    int predicted_class = forward_softmax_layer((float * ) addr->matGemm, (float*) addr->matSoftMax);
+    int predicted_class = forward_softmax_layer((float * ) addr->matGemm, (float*) addr->vecSoftMax);
 #if defined(EMBEDDED) && defined(PRINT_TIME_PER_LAYER)
     double t_end = xilGetMilliseconds();
 #endif
@@ -75,6 +75,7 @@ void forward_connected_layer_int(const int32_t *X, const int16_t * int_params, f
 }
 
 void predict_images_hw_sw(addresses * addr) {
+    int predictions[N_CLASSES];
     #if defined(EMBEDDED) && (defined(PRINT_TIME_PER_LAYER) || defined(PRINT_TOTAL_TIME))
         double t_start = xilGetMilliseconds();
     #endif
@@ -96,18 +97,8 @@ void predict_images_hw_sw(addresses * addr) {
 #ifdef PRINT_IMAGE
         print_ppm(image_in);
 #endif // PRINT_IMAGE
-
-        int prediction = predict_class_hw_sw(addr, &dma);
-
-        printf("# Image HW-SW %03d -> Class=%d (%8s) %3.0f%% [ ",
-               i + 1, prediction,
-               image_class[prediction],
-               addr->matSoftMax[prediction] * 100);
-
-        for (int i = 0; i < N_CLASSES; i++)
-            printf("%3.0f%% ", addr->matSoftMax[i] * 100);
-
-        printf(prediction == i % N_CLASSES ? "] OK\n\r" : "] Prediction Error\n\r");
+        addr->vecSoftMax = &addr->matSoftMax[i*N_CLASSES];
+        predictions[i] = predict_class_hw_sw(addr, &dma);
     }
     #if defined(EMBEDDED) && (defined(PRINT_TIME_PER_LAYER) || defined(PRINT_TOTAL_TIME))
         double t_end = xilGetMilliseconds();
@@ -116,4 +107,15 @@ void predict_images_hw_sw(addresses * addr) {
     #if defined(EMBEDDED) && (defined(PRINT_TIME_PER_LAYER) || defined(PRINT_TOTAL_TIME))
         printf("SW-HW Images Prediction took %.3f ms.\n\r", t_end - t_start);
     #endif // PRINT_TIME_PER_LAYER
+    for (int i = FIRST_IMAGE_TO_CLASSIFY - 1; i < FIRST_IMAGE_TO_CLASSIFY + NUMBER_OF_IMAGES_TO_CLASSIFY - 1; i++) {
+        printf("# Image HW-SW %03d -> Class=%d (%8s) %3.0f%% [ ",
+               i + 1, predictions[i],
+               image_class[predictions[i]],
+               addr->matSoftMax[i*N_CLASSES + predictions[i]] * 100);
+
+        for (int j = 0; j < N_CLASSES; j++)
+            printf("%3.0f%% ", addr->matSoftMax[i*N_CLASSES + j] * 100);
+
+        printf(predictions[i] == i % N_CLASSES ? "] OK\n\r" : "] Prediction Error\n\r");
+    }
 }
