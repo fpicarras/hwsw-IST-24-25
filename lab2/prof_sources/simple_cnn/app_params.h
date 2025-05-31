@@ -66,6 +66,7 @@ typedef struct addresses
   volatile float *vecSoftMax;
   volatile float *fp_images;          /* scaled floating-point image to be processed */
   volatile int16_t *int_images;
+  volatile uint8_t *nextImage;
 } addresses;
 
 

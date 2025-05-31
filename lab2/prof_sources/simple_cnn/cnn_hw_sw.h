@@ -20,7 +20,7 @@ void predict_images_hw_sw(addresses * addr);
 /**
  * Executes convolution + maxpool layer on input using the IP.
  */
-void forward_convolutional_layer_hw(volatile int32_t * matConvPool, XAxiDma *dma);
+void forward_convolutional_layer_hw(addresses * addr, XAxiDma *dma);
 
 /**
  * Executes fully-connected layer on output of max pooling layer.

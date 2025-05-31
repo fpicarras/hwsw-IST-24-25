@@ -107,9 +107,6 @@ static bool weights_ready = false;
             int kernel_1d_idx_r = (kernel_1d_idx + x);
             int kernel_1d_idx_g = (kernel_1d_idx + x) + CONV_KERNEL_SIZE*CONV_KERNEL_SIZE;
             int kernel_1d_idx_b = (kernel_1d_idx + x) + 2*CONV_KERNEL_SIZE*CONV_KERNEL_SIZE;
-            int kernel_1d_idx2_r = kernel_1d_idx_r & 0x1;
-            int kernel_1d_idx2_g = kernel_1d_idx_g & 0x1;
-            int kernel_1d_idx2_b = kernel_1d_idx_b & 0x1;
             // Image values
             // x -
             // - -

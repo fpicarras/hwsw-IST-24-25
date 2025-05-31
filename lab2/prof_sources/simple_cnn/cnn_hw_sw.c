@@ -21,14 +21,14 @@ void init_dma(XAxiDma *dma, addresses * addr) {
 
     while (XAxiDma_Busy(dma,XAXIDMA_DMA_TO_DEVICE));
 
-    XAxiDma_SimpleTransfer(dma, (UINTPTR) addr->int_images, sizeof(int16_t)*IMAGE_SIZE*NUMBER_OF_IMAGES_TO_CLASSIFY, XAXIDMA_DMA_TO_DEVICE);
+    XAxiDma_SimpleTransfer(dma, (UINTPTR) addr->int_images, sizeof(int16_t)*IMAGE_SIZE, XAXIDMA_DMA_TO_DEVICE);   
 }
 
 int predict_class_hw_sw(addresses * addr, XAxiDma *dma) {
 #if defined(EMBEDDED) && defined(PRINT_TIME_PER_LAYER)
     double t_start = xilGetMilliseconds();
 #endif
-    forward_convolutional_layer_hw((int32_t *)addr->matConvPool, dma);
+    forward_convolutional_layer_hw(addr, dma);
 #if defined(EMBEDDED) && defined(PRINT_TIME_PER_LAYER)
     double t_conv = xilGetMilliseconds();
 #endif
@@ -50,12 +50,21 @@ int predict_class_hw_sw(addresses * addr, XAxiDma *dma) {
     return predicted_class;
 }
 
-void forward_convolutional_layer_hw(volatile int32_t * matConvPool, XAxiDma *dma) {  
-    XAxiDma_SimpleTransfer(dma, (UINTPTR) matConvPool, sizeof(int32_t)*HW_MATRIX_OUT_SIZE, XAXIDMA_DEVICE_TO_DMA);
+void forward_convolutional_layer_hw(addresses * addr, XAxiDma *dma) {
+
+    XAxiDma_SimpleTransfer(dma, (UINTPTR) addr->matConvPool, sizeof(int32_t)*HW_MATRIX_OUT_SIZE, XAXIDMA_DEVICE_TO_DMA);
+
+    while (XAxiDma_Busy(dma,XAXIDMA_DMA_TO_DEVICE)); 
+
+    normalize_image16((unsigned char *) addr->nextImage, (int16_t * ) addr->int_images);
+
+    Xil_DCacheFlushRange((INTPTR)addr->int_images, sizeof(int16_t)*IMAGE_SIZE);
+
+    XAxiDma_SimpleTransfer(dma, (UINTPTR) addr->int_images, sizeof(int16_t)*IMAGE_SIZE, XAXIDMA_DMA_TO_DEVICE);
 
     while (XAxiDma_Busy(dma, XAXIDMA_DEVICE_TO_DMA));
 
-    Xil_DCacheInvalidateRange((UINTPTR) matConvPool, sizeof(int32_t)*HW_MATRIX_OUT_SIZE);
+    Xil_DCacheInvalidateRange((UINTPTR) addr->matConvPool, sizeof(int32_t)*HW_MATRIX_OUT_SIZE);
 }
 
 void forward_connected_layer_int(const int32_t *X, const int16_t * int_params, int64_t * Y) {
@@ -85,17 +94,14 @@ void predict_images_hw_sw(addresses * addr) {
     #if defined(EMBEDDED) && (defined(PRINT_TIME_PER_LAYER) || defined(PRINT_TOTAL_TIME))
         double t_start = xilGetMilliseconds();
     #endif
-    for (int i = FIRST_IMAGE_TO_CLASSIFY - 1; i < FIRST_IMAGE_TO_CLASSIFY + NUMBER_OF_IMAGES_TO_CLASSIFY - 1; i++) {
-        normalize_image((unsigned char *) &addr->ch_images[i * IMAGE_SIZE], (float *) &addr->fp_images[i*IMAGE_SIZE]);
-        image_to_ip((float *) &addr->fp_images[i * IMAGE_SIZE], (int16_t * ) &addr->int_images[i * IMAGE_SIZE]);
-    }
     #if defined(EMBEDDED) && defined(PRINT_TIME_PER_LAYER)
         double t_norm = xilGetMilliseconds();
     #endif
     #if defined(EMBEDDED) && defined(PRINT_TIME_PER_LAYER)
         printf("SW-HW Normalization took %.3f ms.\n\r", t_norm - t_start);
     #endif // PRINT_TIME_PER_LAYER
-    Xil_DCacheFlushRange((INTPTR)addr->int_images, sizeof(int16_t)*IMAGE_SIZE*NUMBER_OF_IMAGES_TO_CLASSIFY); 
+    normalize_image16((unsigned char *) addr->ch_images, (int16_t * ) addr->int_images);
+    Xil_DCacheFlushRange((INTPTR)addr->int_images, sizeof(int16_t)*IMAGE_SIZE);
     XAxiDma dma;
     init_dma(&dma, addr);
     /* Classify first NUMBER_OF_IMAGES_TO_CLASSIFY from the dataset */
@@ -103,6 +109,8 @@ void predict_images_hw_sw(addresses * addr) {
 #ifdef PRINT_IMAGE
         print_ppm(image_in);
 #endif // PRINT_IMAGE
+        int ind = (i == (FIRST_IMAGE_TO_CLASSIFY + NUMBER_OF_IMAGES_TO_CLASSIFY - 1)) ? 0 : (i + 1);
+        addr->nextImage = &addr->ch_images[ind*IMAGE_SIZE];
         addr->vecSoftMax = &addr->matSoftMax[i*N_CLASSES];
         predictions[i] = predict_class_hw_sw(addr, &dma);
     }

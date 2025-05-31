@@ -27,7 +27,7 @@
  */
 void normalize_image(const unsigned char *rgb_image, float *norm_image);
 
-void image_to_ip(const float *norm_image, int16_t *image_ip);
+void normalize_image16(const unsigned char *rgb_image, int16_t *image_ip);
 
 /**
  * Prints the input image to stdout in ppm format (see http://paulbourke.net/dataformats/ppm/).
