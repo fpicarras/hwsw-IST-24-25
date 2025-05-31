@@ -58,6 +58,10 @@
     N_CLASSES *               \
     sizeof(float)             \
     )
+#define MEM_MAT_CONN2 ALIGN(   \
+    N_CLASSES *               \
+    sizeof(int64_t)             \
+    )
 #define MEM_MAT_CONN_B MEM_MAT_CONN
 #define MEM_MAT_SOFT_M MEM_MAT_CONN
 
@@ -78,6 +82,7 @@
 #define MEM_BASE_ADDR 0x10000000
 #define MEM_HW_BASE_ADDR 0x13000000
 #define IMAGES_BASE_ADDR 0x15000000
+#define TMP_BASE_ADDR 0x1A000000
 #else
 static unsigned char mem_array[MEM_TOTAL_RESERVED];
 #define MEM_BASE_ADDR mem_array

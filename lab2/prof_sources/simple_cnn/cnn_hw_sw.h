@@ -25,6 +25,8 @@ void forward_convolutional_layer_hw(volatile int32_t * matConvPool, XAxiDma *dma
 /**
  * Executes fully-connected layer on output of max pooling layer.
  */
-void forward_connected_layer_int(const int32_t *X, const int16_t * int_params, float * Y);
+void forward_connected_layer_int(const int32_t *X, const int16_t * int_params, int64_t * Y);
+
+int forward_softmax_layer_int(const int64_t* A, float* B);
 
 #endif // __CNN_SW_HW_H__

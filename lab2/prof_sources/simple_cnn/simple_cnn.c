@@ -45,8 +45,8 @@ void init_memory(addresses * addr) {
 
     addr->int_params = (int16_t*) (MEM_HW_BASE_ADDR);
     addr->matConvPool = (int32_t*) ((unsigned char *) addr->int_params + MEM_BIN_PARAMS);
-    addr->matGemm = (float*) ((unsigned char*) addr->matConvPool + MEM_MAT_C_POOL);
-    addr->matSoftMax = (float*) ((unsigned char*) addr->matGemm + MEM_MAT_CONN);
+    addr->matGemm = (int64_t*) ((unsigned char*) addr->matConvPool + MEM_MAT_C_POOL);
+    addr->matSoftMax = (float*) ((unsigned char*) addr->matGemm + MEM_MAT_CONN2);
 
     addr->fp_images = (float *) IMAGES_BASE_ADDR;
     addr->int_images = (int16_t *) ((unsigned char *) addr->fp_images + 4*MEM_BIN_IMAGES);
@@ -77,8 +77,13 @@ void init_memory(addresses * addr) {
           images_file);
     fclose(images_file);
 #else
+    int16_t * tmp = (int16_t*) TMP_BASE_ADDR;
     for (int i = 0; i < TOTAL_PARAMS; i++) {
         addr->int_params[i] = float2fixed(addr->fp_params[i], 15);
+    }
+    transpose_int((int16_t*) &addr->int_params[CONV_LAYER_PARAMS + FC_LAYER_BIASES], N_CLASSES, POOL_OUTPUT_SIZE, tmp);
+    for(int i = 0; i < FC_LAYER_WEIGHTS; i++) {
+        addr->int_params[CONV_LAYER_PARAMS + FC_LAYER_BIASES + i] = tmp[i];
     }
     Xil_DCacheFlushRange((INTPTR)addr->ch_images, MEM_BIN_IMAGES);
     Xil_DCacheFlushRange((INTPTR)addr->int_params, MEM_BIN_PARAMS);

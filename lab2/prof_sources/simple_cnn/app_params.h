@@ -34,6 +34,7 @@
 #define POOL_OUTPUT_WIDTH CONV_OUTPUT_WIDTH / POOL_KERNEL_SIZE
 #define CONV_LAYER_WEIGHTS CONV_KERNEL_SIZE * CONV_KERNEL_SIZE * CONV_OFM_NUMBER * IMAGE_CHANNELS
 #define CONV_LAYER_BIASES CONV_OFM_NUMBER
+#define CONV_LAYER_PARAMS CONV_LAYER_WEIGHTS + CONV_LAYER_BIASES
 #define FC_LAYER_WEIGHTS POOL_OUTPUT_WIDTH * POOL_OUTPUT_HEIGHT * CONV_OFM_NUMBER * N_CLASSES
 #define FC_LAYER_BIASES N_CLASSES
 #define TOTAL_PARAMS (CONV_LAYER_WEIGHTS + CONV_LAYER_BIASES + FC_LAYER_WEIGHTS + FC_LAYER_BIASES)
@@ -60,7 +61,7 @@ typedef struct addresses
   volatile float *vecSoftM;          /* output of softmax layer */
   volatile int16_t *int_params;
   volatile int32_t *matConvPool;
-  volatile float *matGemm;
+  volatile int64_t *matGemm;
   volatile float *matSoftMax;
   volatile float *vecSoftMax;
   volatile float *fp_images;          /* scaled floating-point image to be processed */

@@ -32,11 +32,11 @@ int predict_class_hw_sw(addresses * addr, XAxiDma *dma) {
 #if defined(EMBEDDED) && defined(PRINT_TIME_PER_LAYER)
     double t_conv = xilGetMilliseconds();
 #endif
-    forward_connected_layer_int((int32_t *)addr->matConvPool, (int16_t *)addr->int_params, (float * ) addr->matGemm);
+    forward_connected_layer_int((int32_t *)addr->matConvPool, (int16_t *)addr->int_params, (int64_t * ) addr->matGemm);
 #if defined(EMBEDDED) && defined(PRINT_TIME_PER_LAYER)
     double t_conn = xilGetMilliseconds();
 #endif
-    int predicted_class = forward_softmax_layer((float * ) addr->matGemm, (float*) addr->vecSoftMax);
+    int predicted_class = forward_softmax_layer_int((int64_t * ) addr->matGemm, (float*) addr->vecSoftMax);
 #if defined(EMBEDDED) && defined(PRINT_TIME_PER_LAYER)
     double t_end = xilGetMilliseconds();
 #endif
@@ -58,7 +58,7 @@ void forward_convolutional_layer_hw(volatile int32_t * matConvPool, XAxiDma *dma
     Xil_DCacheInvalidateRange((UINTPTR) matConvPool, sizeof(int32_t)*HW_MATRIX_OUT_SIZE);
 }
 
-void forward_connected_layer_int(const int32_t *X, const int16_t * int_params, float * Y) {
+void forward_connected_layer_int(const int32_t *X, const int16_t * int_params, int64_t * Y) {
     int16_t *mbias =
             (int16_t *) int_params +
             CONV_OFM_NUMBER +
@@ -68,10 +68,16 @@ void forward_connected_layer_int(const int32_t *X, const int16_t * int_params, f
             (int16_t *) mbias +
             N_CLASSES;
 
-    gemvOpt(matW,
-         (int32_t *) X,
-         mbias,
-         (float *) Y);
+    gemvOptT(matW, X,mbias, Y);
+}
+
+int forward_softmax_layer_int(const int64_t* A, float* B) {
+    float A2[N_CLASSES];
+
+    for (int i = 0; i < N_CLASSES; i++)
+        A2[i] = fixed2float(A[i], 41);
+
+    return forward_softmax_layer(A2, B);
 }
 
 void predict_images_hw_sw(addresses * addr) {

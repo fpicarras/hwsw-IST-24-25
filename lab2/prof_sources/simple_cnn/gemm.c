@@ -7,6 +7,7 @@
  * Contains routines related with General Matrix Multiplication kernel.
  */
 #include "gemm.h"
+#include "image.h"
 #include "utils.h"
 #include "app_params.h"
 
@@ -38,6 +39,16 @@ void gemvOpt(const int16_t *A, const int32_t *B, const int16_t* bias, float *C) 
     }
 }
 
+void gemvOptT(const int16_t *A, const int32_t *B, const int16_t* bias, int64_t *C) {
+    for(int i = 0; i < N_CLASSES; i++) {
+        C[i] =  (int64_t) bias[i] << 26;
+    }
+    for (int k = 0; k < POOL_OUTPUT_SIZE; k++) {
+        for (int i = 0; i < N_CLASSES; i++)
+             C[i] += (int64_t) A[k * N_CLASSES + i] * B[k];
+    }
+}
+
 void gemmBT(const float *A, const float *BT, float *C, int rowsA, int colsA, int rowsBT) {
     for (int i = 0; i < rowsA; i++)
         for (int j = 0; j < rowsBT; j++) {
@@ -63,6 +74,12 @@ void gemmBTCT(const float *A, const float *BT, float *CT, int rowsA, int colsA, 
 }
 
 void transpose(const float *C, int rows, int cols, float *CT) {
+    for (int i = 0; i < rows; i++)
+        for (int j = 0; j < cols; j++)
+            CT[j * rows + i] = C[i * cols + j];
+}
+
+void transpose_int(const int16_t *C, int rows, int cols, int16_t * CT) {
     for (int i = 0; i < rows; i++)
         for (int j = 0; j < cols; j++)
             CT[j * rows + i] = C[i * cols + j];

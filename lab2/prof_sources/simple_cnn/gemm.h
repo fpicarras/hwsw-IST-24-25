@@ -29,7 +29,9 @@ void gemm(const float *A, const float *B, float *C, int rowsA, int colsA, int co
 void gemmBias(const int16_t *A, const int32_t *B, const int16_t* bias, float *C, int rowsA, int colsA, int colsB);
 
 
-void gemvOpt(const int16_t *A, const int32_t *B, const int16_t* bias, float *C);
+void gemvOpt(const int16_t *A, const int32_t *B, const int16_t* bias, int64_t *C);
+
+void gemvOptT(const int16_t *A, const int32_t *B, const int16_t* bias, int64_t *C);
 
 /**
  * Computes matrix multiplication using the GEMM kernel with second matrix transposed.
@@ -62,6 +64,8 @@ void gemmBTCT(const float *A, const float *BT, float *CT, int rowsA, int colsA, 
  * @param CT Output matrix (transposed input matrix)
  */
 void transpose(const float *C, int rows, int cols, float *CT);
+
+void transpose_int(const int16_t *C, int rows, int cols, int16_t * CT);
 
 /**
  * Adds bias to all elements of the input matrix.
