@@ -9,7 +9,7 @@
 
 #define N_LINES 1849
 #define N_COLUMNS 10
-#define N_LIN_LOG2 11
+#define N_SUMS_LOG2 11 // log 2(N_LINES - 1 + 1)
 #define NUM_BLOCKS 16
 #define MATRIX_SIZE N_LINES * N_COLUMNS
 
@@ -22,13 +22,13 @@
 #define MFIN 15
 #define MWIN MFIN+MIIN
 #define OWIN 64
-#define OIIN VIIN+MIIN+N_LIN_LOG2
+#define OIIN VIIN+MIIN+N_SUMS_LOG2
 #define OFIN OWIN-OIIN
 
 typedef ap_fixed<VWIN,VIIN> datavi_t; // Vector Input
 typedef ap_fixed<MWIN,MIIN> datami_t; // Matrix Input
 typedef ap_fixed<VWIN+MWIN,VIIN+MIIN> mul_t;
-typedef ap_fixed<VWIN+MWIN+N_LIN_LOG2,VIIN+MIIN+N_LIN_LOG2> acc_t;
+typedef ap_fixed<VWIN+MWIN+N_SUMS_LOG2,VIIN+MIIN+N_SUMS_LOG2> acc_t;
 
 typedef ap_fixed<OWIN,OIIN> datao_t;
 

@@ -4,24 +4,24 @@
 #include "axil_gemv.h"
 
 static double mA[MATRIX_SIZE];
+static double bA[N_COLUMNS];
 static double vB[N_LINES];
 static double hw_vC[N_COLUMNS];
 static double sw_vC[N_COLUMNS];
 
-void init_outputs() {
+void init_bA_vC() {
   for(int i = 0; i < N_COLUMNS; i++) {
-    sw_vC[i] = 0;
+    bA[i] = (((double)rand()/RAND_MAX) - 0.5)/0.5; // Q1.15 (-1, 1)
+    sw_vC[i] = bA[i];
   }
 }
 
-void init_inputs() {
+void init_mA_vB() {
   for (int i = 0; i < MATRIX_SIZE; i++) {
-    double tmp = (((double)rand()/RAND_MAX) - 0.5)/0.5;
-    mA[i] = tmp; // Q1.15 (-1, 1)
+    mA[i] = (((double)rand()/RAND_MAX) - 0.5)/0.5; // Q1.15 (-1, 1)
   }
   for (int i = 0; i < N_LINES; i++) {
-    double tmp = 32*(((double)rand()/RAND_MAX) - 0.5)/0.5;
-    vB[i] = tmp; // Q6.26 (-32, 32) 
+    vB[i] = 32*(((double)rand()/RAND_MAX) - 0.5)/0.5; // Q6.26 (-32, 32) 
   }
 }
 
@@ -29,7 +29,7 @@ void print_mat(double *x, int rows, int cols) {
   int i;
   for (int i = 0; i < rows; i++) {
     for (int j = 0; j < cols; j++) {
-      printf("%6.2f ", x[i*cols + j]);
+      printf("%3.4f ", x[i*cols + j]);
     }
     printf("\n");
   }
@@ -65,9 +65,16 @@ int main() {
   strmmin_t tmpmi;
   strmout_t tmpo;
 
-  init_outputs();
+  init_bA_vC();
+  // Send bias
+  for (int i = 0; i < N_COLUMNS; i++) {
+    tmpmi.data = (datami_t)bA[i];
+    tmpmi.last = (ap_int<1>)0;
+    strm_in.write(tmpmi);
+  }
+
   for(int k = 0; k < NUM_BLOCKS; k++) {
-    init_inputs();
+    init_mA_vB();
     // Write vector B to str_in
     for (int i = 0; i < N_LINES; i++) {
       tmpvi.data = (datavi_t)vB[i];

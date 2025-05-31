@@ -18,6 +18,13 @@ void axil_gemv(
   static acc_t acc[N_COLUMNS];
   static datami_t matrix[MATRIX_SIZE];
 
+  if(k == 0) {
+    for (int i = 0; i < N_COLUMNS; i++) {
+      tmpmi = strmm_in.read();
+      acc[i] = tmpmi.data; // bias
+    }
+  }
+
   loop_m:
   for (int i = 0; i < MATRIX_SIZE; i++) {
     tmpmi = strmm_in.read();
@@ -31,8 +38,7 @@ void axil_gemv(
     for(int j = 0; j < N_COLUMNS; j++) {
       #pragma HLS unroll
       mul_t mult = tmpvi.data * matrix[i*N_COLUMNS + j];
-      if (k == 0 && i == 0) acc[j] = mult;
-      else acc[j] += mult;
+      acc[j] += mult;
     }
   }
 
