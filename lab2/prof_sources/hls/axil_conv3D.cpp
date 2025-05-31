@@ -16,6 +16,8 @@ static bias_t bias[CONV_OFM_NUMBER];
 static bool weights_ready = false;
 
   float tmp0, tmp1, tmp2, tmp3;
+  int g_i = 0, b_i = 0;
+  image_t tmp0_in, tmp1_in, tmp2_in, tmp3_in;
 
   strmin_t tmp;
   /* Input Image Stream */
@@ -41,8 +43,8 @@ static bool weights_ready = false;
 
   weights_ready = true;
   /* Loops to recieve and convert the 8-bit inputs to Q15 */
-  loop_red: 
-  for(int i = 0; i < IMAGE_HEIGHT*IMAGE_WIDTH; i +=PIXEL_PER_DATA) {
+  loop_channels: 
+  for(int i = 0; i < IMAGE_HEIGHT*IMAGE_WIDTH*IMAGE_CHANNELS; i +=PIXEL_PER_DATA) {
     tmp = strm_in.read();
 
     tmp0 = ((float)tmp.data.range(7, 0) / 255.0f - 0.5f) / 0.5f;
@@ -50,38 +52,30 @@ static bool weights_ready = false;
     tmp2 = ((float)tmp.data.range(23, 16) / 255.0f - 0.5f) / 0.5f;
     tmp3 = ((float)tmp.data.range(31, 24) / 255.0f - 0.5f) / 0.5f;
 
-    image_red[i]   = (image_t)(tmp0 * (float)(1 << 15) + 0.5f);
-    image_red[i+1] = (image_t)(tmp1 * (float)(1 << 15) + 0.5f);
-    image_red[i+2] = (image_t)(tmp2 * (float)(1 << 15) + 0.5f);
-    image_red[i+3] = (image_t)(tmp3 * (float)(1 << 15) + 0.5f);
-  }
-  loop_green: 
-  for(int i = 0; i < IMAGE_HEIGHT*IMAGE_WIDTH; i +=PIXEL_PER_DATA) {
-    tmp = strm_in.read();
+    tmp0_in = (image_t)(tmp0 * (float)(1 << 15) + 0.5f);
+    tmp1_in = (image_t)(tmp1 * (float)(1 << 15) + 0.5f);
+    tmp2_in = (image_t)(tmp2 * (float)(1 << 15) + 0.5f);
+    tmp3_in = (image_t)(tmp3 * (float)(1 << 15) + 0.5f);
 
-    tmp0 = ((float)tmp.data.range(7, 0) / 255.0f - 0.5f) / 0.5f;
-    tmp1 = ((float)tmp.data.range(15, 8) / 255.0f - 0.5f) / 0.5f;
-    tmp2 = ((float)tmp.data.range(23, 16) / 255.0f - 0.5f) / 0.5f;
-    tmp3 = ((float)tmp.data.range(31, 24) / 255.0f - 0.5f) / 0.5f;
-
-    image_green[i]   = (image_t)(tmp0 * (float)(1 << 15) + 0.5f);
-    image_green[i+1] = (image_t)(tmp1 * (float)(1 << 15) + 0.5f);
-    image_green[i+2] = (image_t)(tmp2 * (float)(1 << 15) + 0.5f);
-    image_green[i+3] = (image_t)(tmp3 * (float)(1 << 15) + 0.5f);
-  }
-  loop_blue: 
-  for(int i = 0; i < IMAGE_HEIGHT*IMAGE_WIDTH; i +=PIXEL_PER_DATA) {
-    tmp = strm_in.read();
-
-    tmp0 = ((float)tmp.data.range(7, 0) / 255.0f - 0.5f) / 0.5f;
-    tmp1 = ((float)tmp.data.range(15, 8) / 255.0f - 0.5f) / 0.5f;
-    tmp2 = ((float)tmp.data.range(23, 16) / 255.0f - 0.5f) / 0.5f;
-    tmp3 = ((float)tmp.data.range(31, 24) / 255.0f - 0.5f) / 0.5f;
-
-    image_blue[i]   = (image_t)(tmp0 * (float)(1 << 15) + 0.5f);
-    image_blue[i+1] = (image_t)(tmp1 * (float)(1 << 15) + 0.5f);
-    image_blue[i+2] = (image_t)(tmp2 * (float)(1 << 15) + 0.5f);
-    image_blue[i+3] = (image_t)(tmp3 * (float)(1 << 15) + 0.5f);
+    if(i < IMAGE_HEIGHT*IMAGE_WIDTH-1){
+      image_red[i] = tmp0_in;
+      image_red[i+1] = tmp1_in;
+      image_red[i+2] = tmp2_in;
+      image_red[i+3] = tmp3_in;
+    }
+    else if(i < 2*IMAGE_HEIGHT*IMAGE_WIDTH-1){
+      image_green[g_i] = tmp0_in;
+      image_green[g_i+1] = tmp1_in;
+      image_green[g_i+2] = tmp2_in;
+      image_green[g_i+3] = tmp3_in;
+      g_i += PIXEL_PER_DATA;
+    }else{
+      image_blue[b_i] = tmp0_in;
+      image_blue[b_i+1] = tmp1_in;
+      image_blue[b_i+2] = tmp2_in;
+      image_blue[b_i+3] = tmp3_in;
+      b_i += PIXEL_PER_DATA;
+    }
   }
 
   loop_conv:
