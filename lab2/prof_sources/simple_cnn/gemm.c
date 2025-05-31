@@ -7,7 +7,6 @@
  * Contains routines related with General Matrix Multiplication kernel.
  */
 #include "gemm.h"
-#include "image.h"
 #include "utils.h"
 #include "app_params.h"
 
@@ -30,12 +29,12 @@ void gemmBias(const int16_t *A, const int32_t *B, const int16_t* bias, float *C,
         }
 }
 
-void gemvOpt(const int16_t *A, const int32_t *B, const int16_t* bias, float *C) {
+void gemvOpt(const int16_t *A, const int32_t *B, const int16_t* bias, int64_t *C) {
     for (int i = 0; i < N_CLASSES; i++) {
         int64_t acc = (int64_t) bias[i] << 26;
         for (int k = 0; k < POOL_OUTPUT_SIZE; k++)
             acc += (int64_t) A[i * POOL_OUTPUT_SIZE + k] * B[k];
-        C[i] = fixed2float(acc, 41);
+        C[i] = acc;
     }
 }
 
