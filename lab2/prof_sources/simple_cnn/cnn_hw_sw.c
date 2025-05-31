@@ -8,7 +8,7 @@
 #include "cnn_sw.h"
 #include "simple_cnn.h"
 
-void init_dma(XAxiDma *dma, addresses * addr) {
+void init_sw_pipeline(XAxiDma *dma, addresses * addr) {
     // Initialize DMA
     XAxiDma_Config *cfg_dma;
     cfg_dma = XAxiDma_LookupConfig(0x40400000);
@@ -18,6 +18,9 @@ void init_dma(XAxiDma *dma, addresses * addr) {
     XAxiDma_IntrDisable(dma, XAXIDMA_IRQ_ALL_MASK, XAXIDMA_DMA_TO_DEVICE);
 
     XAxiDma_SimpleTransfer(dma, (UINTPTR) addr->int_params, sizeof(int16_t)*(CONV_LAYER_WEIGHTS + CONV_LAYER_BIASES), XAXIDMA_DMA_TO_DEVICE);
+
+    normalize_image16((unsigned char *) &addr->ch_images[FIRST_IMAGE_TO_CLASSIFY - 1], (int16_t * ) addr->int_images);
+    Xil_DCacheFlushRange((INTPTR)addr->int_images, sizeof(int16_t)*IMAGE_SIZE);
 
     while (XAxiDma_Busy(dma,XAXIDMA_DMA_TO_DEVICE));
 
@@ -94,16 +97,8 @@ void predict_images_hw_sw(addresses * addr) {
     #if defined(EMBEDDED) && (defined(PRINT_TIME_PER_LAYER) || defined(PRINT_TOTAL_TIME))
         double t_start = xilGetMilliseconds();
     #endif
-    #if defined(EMBEDDED) && defined(PRINT_TIME_PER_LAYER)
-        double t_norm = xilGetMilliseconds();
-    #endif
-    #if defined(EMBEDDED) && defined(PRINT_TIME_PER_LAYER)
-        printf("SW-HW Normalization took %.3f ms.\n\r", t_norm - t_start);
-    #endif // PRINT_TIME_PER_LAYER
-    normalize_image16((unsigned char *) addr->ch_images, (int16_t * ) addr->int_images);
-    Xil_DCacheFlushRange((INTPTR)addr->int_images, sizeof(int16_t)*IMAGE_SIZE);
     XAxiDma dma;
-    init_dma(&dma, addr);
+    init_sw_pipeline(&dma, addr);
     /* Classify first NUMBER_OF_IMAGES_TO_CLASSIFY from the dataset */
     for (int i = FIRST_IMAGE_TO_CLASSIFY - 1; i < FIRST_IMAGE_TO_CLASSIFY + NUMBER_OF_IMAGES_TO_CLASSIFY - 1; i++) {
 #ifdef PRINT_IMAGE
