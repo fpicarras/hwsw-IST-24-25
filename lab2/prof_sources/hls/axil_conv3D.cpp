@@ -11,12 +11,11 @@ void axil_conv3D(hls::stream<strmin_t> &strm_in,
 static image_t image_red[IMAGE_HEIGHT*IMAGE_WIDTH];
 static image_t image_green[IMAGE_HEIGHT*IMAGE_WIDTH];
 static image_t image_blue[IMAGE_HEIGHT*IMAGE_WIDTH];
-static data_t weights[IMAGE_CHANNELS*CONV_OFM_NUMBER*CONV_KERNEL_SIZE*CONV_KERNEL_SIZE/WEIGHTS_PER_DATA];
-static data_t bias[CONV_OFM_NUMBER/BIAS_PER_DATA];
+static weight_t weights[IMAGE_CHANNELS*CONV_OFM_NUMBER*CONV_KERNEL_SIZE*CONV_KERNEL_SIZE];
+static bias_t bias[CONV_OFM_NUMBER];
 static bool weights_ready = false;
 
   float tmp0, tmp1, tmp2, tmp3;
-  int tmp0_i, tmp1_i, tmp2_i, tmp3_i;
 
   strmin_t tmp;
   /* Input Image Stream */
@@ -24,21 +23,24 @@ static bool weights_ready = false;
     /* Bias Stream */
   if(!weights_ready) {
     loop_bias:
-    for(int i = 0; i < CONV_OFM_NUMBER/BIAS_PER_DATA; i ++) {
+    for(int i = 0; i < CONV_OFM_NUMBER; i += BIAS_PER_DATA) {
       tmp = strm_in.read();
-      bias[i] = tmp.data;
+      bias[i]   = (bias_t)tmp.data.range(15, 0);
+      bias[i+1] = (bias_t)tmp.data.range(31, 16);
     }
 
     /* Weights Stream */
     loop_weights:
-    for(int i = 0; i < IMAGE_CHANNELS*CONV_OFM_NUMBER*CONV_KERNEL_SIZE*CONV_KERNEL_SIZE/WEIGHTS_PER_DATA; i ++) {
+    for(int i = 0; i < IMAGE_CHANNELS*CONV_OFM_NUMBER*CONV_KERNEL_SIZE*CONV_KERNEL_SIZE; i += WEIGHTS_PER_DATA) {
       tmp = strm_in.read();
-      weights[i] = tmp.data;
+
+      weights[i]   = (weight_t)tmp.data.range(15, 0);
+      weights[i+1] = (weight_t)tmp.data.range(31, 16);
     }
   }
 
   weights_ready = true;
-
+  /* Loops to recieve and convert the 8-bit inputs to Q15 */
   loop_red: 
   for(int i = 0; i < IMAGE_HEIGHT*IMAGE_WIDTH; i +=PIXEL_PER_DATA) {
     tmp = strm_in.read();
@@ -121,9 +123,9 @@ static bool weights_ready = false;
             image_r = image_red[image_1d_idx];
             image_g = image_green[image_1d_idx];
             image_b = image_blue[image_1d_idx];
-            weight_r  = (weights[kernel_1d_idx_r >> 1] >> (kernel_1d_idx2_r << 4)) & 0xFFFF;
-            weight_g  = (weights[kernel_1d_idx_g >> 1] >> (kernel_1d_idx2_g << 4)) & 0xFFFF;
-            weight_b  = (weights[kernel_1d_idx_b >> 1] >> (kernel_1d_idx2_b << 4)) & 0xFFFF;
+            weight_r  = weights[kernel_1d_idx_r];
+            weight_g  = weights[kernel_1d_idx_g];
+            weight_b  = weights[kernel_1d_idx_b];
             acc0_r += weight_r * image_r;
             acc0_g += weight_g * image_g;
             acc0_b += weight_b * image_b;
@@ -160,8 +162,7 @@ static bool weights_ready = false;
           }
         }
 
-        int bias_idx2 = l & 0x1;
-        bias_t bia = (bias_t)((bias[l >> 1] >> (bias_idx2 << 4)) & 0xFFFF);
+        bias_t bia = bias[l];
         accum_t acc0 = acc0_r + acc0_g + acc0_b + ((accum_t)bia << (ACCUM_BIT_WIDTH - INTEGER_BIT_WIDTH - WEIGHT_BIT_WIDTH));
         accum_t acc1 = acc1_r + acc1_g + acc1_b + ((accum_t)bia << (ACCUM_BIT_WIDTH - INTEGER_BIT_WIDTH - WEIGHT_BIT_WIDTH));
         accum_t acc2 = acc2_r + acc2_g + acc2_b + ((accum_t)bia << (ACCUM_BIT_WIDTH - INTEGER_BIT_WIDTH - WEIGHT_BIT_WIDTH));
