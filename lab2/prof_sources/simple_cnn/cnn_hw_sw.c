@@ -103,6 +103,9 @@ void predict_images_hw_sw(addresses * addr) {
     #endif
     XAxiDma dma;
     init_sw_pipeline(&dma, addr);
+    #if defined(EMBEDDED) && defined(PRINT_TIME_PER_LAYER)
+        double t_pipe = xilGetMilliseconds();
+    #endif
     /* Classify first NUMBER_OF_IMAGES_TO_CLASSIFY from the dataset */
     for (int i = FIRST_IMAGE_TO_CLASSIFY - 1; i < FIRST_IMAGE_TO_CLASSIFY + NUMBER_OF_IMAGES_TO_CLASSIFY - 1; i++) {
 #ifdef PRINT_IMAGE
@@ -117,6 +120,10 @@ void predict_images_hw_sw(addresses * addr) {
     #if defined(EMBEDDED) && (defined(PRINT_TIME_PER_LAYER) || defined(PRINT_TOTAL_TIME))
         double t_end = xilGetMilliseconds();
     #endif
+
+    #if defined(EMBEDDED) && defined(PRINT_TIME_PER_LAYER)
+        printf("SW-HW Init Pipeline took %.3f ms.\n\r", t_pipe - t_start);
+    #endif // PRINT_TIME_PER_LAYER
 
     #if defined(EMBEDDED) && (defined(PRINT_TIME_PER_LAYER) || defined(PRINT_TOTAL_TIME))
         printf("SW-HW Images Prediction took %.3f ms.\n\r", t_end - t_start);
