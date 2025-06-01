@@ -84,14 +84,14 @@
 #define CONVPOOL_BASE_ADDR 0x15000000
 #define CONVPOOL2_BASE_ADDR 0x16000000
 #define IMAGES_BASE_ADDR 0x17000000
-#define TMP_BASE_ADDR 0x1A000000
+#define TMP_BASE_ADDR 0x1D000000
 #else
 static unsigned char mem_array[MEM_TOTAL_RESERVED];
 #define MEM_BASE_ADDR mem_array
 #endif // EMBEDDED
 
 #ifdef __IMAGES_CLASSES__
-static char image_class[10][9] = {"Airplane", "Bird", "Car", "Cat", "Deer", "Dog",
+const static char image_class[10][9] = {"Airplane", "Bird", "Car", "Cat", "Deer", "Dog",
                                   "Horse", "Monkey", "Ship", "Truck"};
 #endif // __IMAGES_CLASSES__
 

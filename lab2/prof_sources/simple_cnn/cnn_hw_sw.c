@@ -84,7 +84,7 @@ void forward_connected_layer_int(const int32_t *X, const int16_t * int_params, i
             (int16_t *) mbias +
             N_CLASSES;
 
-    gemvOptT(matW, X, mbias, Y);
+    gemvOpt(matW, X, mbias, Y);
 }
 
 int forward_softmax_layer_int(const int64_t* A, float* B) {

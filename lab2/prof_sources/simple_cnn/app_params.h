@@ -48,26 +48,26 @@
 
 typedef struct addresses
 {
-  volatile unsigned char *ch_images; /* images data region */
-  volatile float *fp_params;         /* network parameters data region */
-  volatile float *matA;              /* auxiliary matrix A to implement 3D convolution as a matrix multiplication */
-  volatile float *matCv;             /* output of convolutional layer before adding bias */
-  volatile float *matCbias;          /* output of convolutional layer after adding bias */
-  volatile float *matCrelu;          /* output of ReLU */
-  volatile float *matCpool;          /* output of pooling layer */
-  volatile float *matConn;           /* output of fully connected layer before adding bias */
-  volatile float *matConnB;          /* output of fully connected layer after adding bias */
-  volatile float *matSoftM;          /* output of softmax layer */
-  volatile float *vecSoftM;          /* output of softmax layer */
-  volatile int16_t *int_params;
+  unsigned char *ch_images; /* images data region */
+  float *fp_params;         /* network parameters data region */
+  float *matA;              /* auxiliary matrix A to implement 3D convolution as a matrix multiplication */
+  float *matCv;             /* output of convolutional layer before adding bias */
+  float *matCbias;          /* output of convolutional layer after adding bias */
+  float *matCrelu;          /* output of ReLU */
+  float *matCpool;          /* output of pooling layer */
+  float *matConn;           /* output of fully connected layer before adding bias */
+  float *matConnB;          /* output of fully connected layer after adding bias */
+  float *matSoftM;          /* output of softmax layer */
+  float *vecSoftM;          /* output of softmax layer */
+  int16_t *int_params;
   volatile int32_t *matConvPool[2];
   int matConvPoolInd;
-  volatile int64_t *matGemm;
-  volatile float *matSoftMax;
-  volatile float *vecSoftMax;
-  volatile float *fp_images;          /* scaled floating-point image to be processed */
-  volatile int16_t *int_images;
-  volatile uint8_t *nextImage;
+  int64_t *matGemm;
+  float *matSoftMax;
+  float *vecSoftMax;
+  float *fp_images;          /* scaled floating-point image to be processed */
+  int16_t *int_images;
+  uint8_t *nextImage;
 } addresses;
 
 

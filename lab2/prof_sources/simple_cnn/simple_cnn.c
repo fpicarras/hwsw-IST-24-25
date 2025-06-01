@@ -80,13 +80,8 @@ void init_memory(addresses * addr) {
           images_file);
     fclose(images_file);
 #else
-    int16_t * tmp = (int16_t*) TMP_BASE_ADDR;
     for (int i = 0; i < TOTAL_PARAMS; i++) {
         addr->int_params[i] = float2fixed(addr->fp_params[i], 15);
-    }
-    transpose_int((int16_t*) &addr->int_params[CONV_LAYER_PARAMS + FC_LAYER_BIASES], N_CLASSES, POOL_OUTPUT_SIZE, tmp);
-    for(int i = 0; i < FC_LAYER_WEIGHTS; i++) {
-        addr->int_params[CONV_LAYER_PARAMS + FC_LAYER_BIASES + i] = tmp[i];
     }
     Xil_DCacheFlushRange((INTPTR)addr->ch_images, MEM_BIN_IMAGES);
     Xil_DCacheFlushRange((INTPTR)addr->int_params, MEM_BIN_PARAMS);

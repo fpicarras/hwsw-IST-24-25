@@ -20,7 +20,7 @@ void normalize_image16(const unsigned char *rgb_image, int16_t *image_ip) {
     /* Scales image pixels to be floating-point values in range [-1, 1] */
     for (int i = 0; i < IMAGE_SIZE; i++) {
         float tmp = 2*((float) rgb_image[i] / 255 - 0.5F);
-        image_ip[i] = float2fixed(tmp, 15);
+        image_ip[i] = (int16_t)(tmp * (float)(1UL << 15UL) + 0.5F);
     }
 }
 
