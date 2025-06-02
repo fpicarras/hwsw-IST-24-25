@@ -15,10 +15,6 @@ static weight_t weights[IMAGE_CHANNELS*CONV_OFM_NUMBER*CONV_KERNEL_SIZE*CONV_KER
 static bias_t bias[CONV_OFM_NUMBER];
 static bool weights_ready = false;
 
-  float tmp0, tmp1, tmp2, tmp3;
-  int g_i = 0, b_i = 0;
-  image_t tmp0_in, tmp1_in, tmp2_in, tmp3_in;
-
   strmin_t tmp;
   /* Input Image Stream */
 
@@ -43,39 +39,23 @@ static bool weights_ready = false;
 
   weights_ready = true;
   /* Loops to recieve and convert the 8-bit inputs to Q15 */
-  loop_channels: 
-  for(int i = 0; i < IMAGE_HEIGHT*IMAGE_WIDTH*IMAGE_CHANNELS; i +=PIXEL_PER_DATA) {
+  loop_red: 
+  for(int i = 0; i < IMAGE_HEIGHT*IMAGE_WIDTH; i += PIXEL_PER_DATA) {
     tmp = strm_in.read();
-
-    tmp0 = ((float)tmp.data.range(7, 0) / 255.0f - 0.5f) / 0.5f;
-    tmp1 = ((float)tmp.data.range(15, 8) / 255.0f - 0.5f) / 0.5f;
-    tmp2 = ((float)tmp.data.range(23, 16) / 255.0f - 0.5f) / 0.5f;
-    tmp3 = ((float)tmp.data.range(31, 24) / 255.0f - 0.5f) / 0.5f;
-
-    tmp0_in = (image_t)(tmp0 * (float)(1 << 15) + 0.5f);
-    tmp1_in = (image_t)(tmp1 * (float)(1 << 15) + 0.5f);
-    tmp2_in = (image_t)(tmp2 * (float)(1 << 15) + 0.5f);
-    tmp3_in = (image_t)(tmp3 * (float)(1 << 15) + 0.5f);
-
-    if(i < IMAGE_HEIGHT*IMAGE_WIDTH-1){
-      image_red[i] = tmp0_in;
-      image_red[i+1] = tmp1_in;
-      image_red[i+2] = tmp2_in;
-      image_red[i+3] = tmp3_in;
-    }
-    else if(i < 2*IMAGE_HEIGHT*IMAGE_WIDTH-1){
-      image_green[g_i] = tmp0_in;
-      image_green[g_i+1] = tmp1_in;
-      image_green[g_i+2] = tmp2_in;
-      image_green[g_i+3] = tmp3_in;
-      g_i += PIXEL_PER_DATA;
-    }else{
-      image_blue[b_i] = tmp0_in;
-      image_blue[b_i+1] = tmp1_in;
-      image_blue[b_i+2] = tmp2_in;
-      image_blue[b_i+3] = tmp3_in;
-      b_i += PIXEL_PER_DATA;
-    }
+    image_red[i] = tmp.data.range(15, 0);
+    image_red[i+1] = tmp.data.range(31, 16);
+  }
+  loop_green: 
+  for(int i = 0; i < IMAGE_HEIGHT*IMAGE_WIDTH; i += PIXEL_PER_DATA) {
+    tmp = strm_in.read();
+    image_green[i] = tmp.data.range(15, 0);
+    image_green[i+1] = tmp.data.range(31, 16);
+  }
+  loop_blue: 
+  for(int i = 0; i < IMAGE_HEIGHT*IMAGE_WIDTH; i += PIXEL_PER_DATA) {
+    tmp = strm_in.read();
+    image_blue[i] = tmp.data.range(15, 0);
+    image_blue[i+1] = tmp.data.range(31, 16);
   }
 
   loop_conv:
@@ -107,22 +87,22 @@ static bool weights_ready = false;
             int kernel_1d_idx_r = (kernel_1d_idx + x);
             int kernel_1d_idx_g = (kernel_1d_idx + x) + CONV_KERNEL_SIZE*CONV_KERNEL_SIZE;
             int kernel_1d_idx_b = (kernel_1d_idx + x) + 2*CONV_KERNEL_SIZE*CONV_KERNEL_SIZE;
+            weight_r  = weights[kernel_1d_idx_r];
+            weight_g  = weights[kernel_1d_idx_g];
+            weight_b  = weights[kernel_1d_idx_b];
             // Image values
-            // x -
-            // - -
+            // x - - -
+            // - - - -
             int image_1d_idx = image_1d_idx_base + x;
             image_r = image_red[image_1d_idx];
             image_g = image_green[image_1d_idx];
             image_b = image_blue[image_1d_idx];
-            weight_r  = weights[kernel_1d_idx_r];
-            weight_g  = weights[kernel_1d_idx_g];
-            weight_b  = weights[kernel_1d_idx_b];
             acc0_r += weight_r * image_r;
             acc0_g += weight_g * image_g;
             acc0_b += weight_b * image_b;
             
-            // - x
-            // - -
+            // - x - -
+            // - - - -
             image_1d_idx = image_1d_idx_base + x +1;
             image_r = image_red[image_1d_idx];
             image_g = image_green[image_1d_idx];
@@ -131,8 +111,8 @@ static bool weights_ready = false;
             acc1_g += weight_g * image_g;
             acc1_b += weight_b * image_b;
             
-            // - -
-            // x -
+            // - - - -
+            // x - - -
             image_1d_idx = image_1d_idx_base + x + IMAGE_WIDTH;
             image_r = image_red[image_1d_idx];
             image_g = image_green[image_1d_idx];
@@ -141,8 +121,8 @@ static bool weights_ready = false;
             acc2_g += weight_g * image_g;
             acc2_b += weight_b * image_b;
             
-            // - -
-            // - x
+            // - - - -
+            // - x - -
             image_1d_idx = image_1d_idx_base + x + IMAGE_WIDTH + 1;
             image_r = image_red[image_1d_idx];
             image_g = image_green[image_1d_idx];

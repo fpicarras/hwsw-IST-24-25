@@ -267,7 +267,7 @@ int main() {
 
         for (int i = 0; i < IMAGE_SIZE; i+=PIXEL_PER_DATA) {
             for(int j = 0; j < PIXEL_PER_DATA; j ++) {
-                tmp_in.data((j+1)*(PIXEL_BIT_WIDTH) - 1, j*PIXEL_BIT_WIDTH) = image_in[k*IMAGE_SIZE + i + j];
+                tmp_in.data((j+1)*(PIXEL_BIT_WIDTH) - 1, j*PIXEL_BIT_WIDTH) = image_in_i[i + j];
             }
             tmp_in.last = (ap_int<1>)(i == IMAGE_SIZE - PIXEL_PER_DATA);
             str_in.write(tmp_in);
