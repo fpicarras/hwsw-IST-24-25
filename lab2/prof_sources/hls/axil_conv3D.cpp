@@ -63,15 +63,13 @@ static bool weights_ready = false;
     loop_i:
     for (int i = 0; i < CONV_OUTPUT_HEIGHT; i+=2) {
       loop_j:
-      for (int j = 0; j < CONV_OUTPUT_WIDTH; j+=2) {
+      for (int j = 0; j < CONV_OUTPUT_WIDTH; j+=4) { // 4
         // Accumulators for the 4 different positions
-        accum_t acc0_r = 0, acc1_r = 0, acc2_r = 0, acc3_r = 0;
-        accum_t acc0_g = 0, acc1_g = 0, acc2_g = 0, acc3_g = 0;
-        accum_t acc0_b = 0, acc1_b = 0, acc2_b = 0, acc3_b = 0;
+        accum_t acc0_r = 0, acc1_r = 0, acc2_r = 0, acc3_r = 0, acc4_r = 0, acc5_r = 0, acc6_r = 0, acc7_r = 0;
+        accum_t acc0_g = 0, acc1_g = 0, acc2_g = 0, acc3_g = 0, acc4_g = 0, acc5_g = 0, acc6_g = 0, acc7_g = 0;
+        accum_t acc0_b = 0, acc1_b = 0, acc2_b = 0, acc3_b = 0, acc4_b = 0, acc5_b = 0, acc6_b = 0, acc7_b = 0;
 
         image_t image_r, image_g, image_b;
-        output_t acc_sat;
-        data_t tmp_out;
         weight_t weight_r, weight_g, weight_b;
 
         loop_k:
@@ -130,6 +128,46 @@ static bool weights_ready = false;
             acc3_r += weight_r * image_r;
             acc3_g += weight_g * image_g;
             acc3_b += weight_b * image_b;
+
+            // - - x -
+            // - - - -
+            image_1d_idx = image_1d_idx_base + x + 2;
+            image_r = image_red[image_1d_idx];
+            image_g = image_green[image_1d_idx];
+            image_b = image_blue[image_1d_idx];
+            acc4_r += weight_r * image_r;
+            acc4_g += weight_g * image_g;
+            acc4_b += weight_b * image_b;
+
+            // - - - x
+            // - - - -
+            image_1d_idx = image_1d_idx_base + x + 3;
+            image_r = image_red[image_1d_idx];
+            image_g = image_green[image_1d_idx];
+            image_b = image_blue[image_1d_idx];
+            acc5_r += weight_r * image_r;
+            acc5_g += weight_g * image_g;
+            acc5_b += weight_b * image_b;
+
+            // - - - -
+            // - - x -
+            image_1d_idx = image_1d_idx_base + x + IMAGE_WIDTH + 2;
+            image_r = image_red[image_1d_idx];
+            image_g = image_green[image_1d_idx];
+            image_b = image_blue[image_1d_idx];
+            acc6_r += weight_r * image_r;
+            acc6_g += weight_g * image_g;
+            acc6_b += weight_b * image_b;
+
+            // - - - -
+            // - - - x
+            image_1d_idx = image_1d_idx_base + x + IMAGE_WIDTH + 3;
+            image_r = image_red[image_1d_idx];
+            image_g = image_green[image_1d_idx];
+            image_b = image_blue[image_1d_idx];
+            acc7_r += weight_r * image_r;
+            acc7_g += weight_g * image_g;
+            acc7_b += weight_b * image_b;
           }
         }
 
@@ -138,21 +176,38 @@ static bool weights_ready = false;
         accum_t acc1 = acc1_r + acc1_g + acc1_b + ((accum_t)bia << (ACCUM_BIT_WIDTH - INTEGER_BIT_WIDTH - WEIGHT_BIT_WIDTH));
         accum_t acc2 = acc2_r + acc2_g + acc2_b + ((accum_t)bia << (ACCUM_BIT_WIDTH - INTEGER_BIT_WIDTH - WEIGHT_BIT_WIDTH));
         accum_t acc3 = acc3_r + acc3_g + acc3_b + ((accum_t)bia << (ACCUM_BIT_WIDTH - INTEGER_BIT_WIDTH - WEIGHT_BIT_WIDTH));
+        accum_t acc4 = acc4_r + acc4_g + acc4_b + ((accum_t)bia << (ACCUM_BIT_WIDTH - INTEGER_BIT_WIDTH - WEIGHT_BIT_WIDTH));
+        accum_t acc5 = acc5_r + acc5_g + acc5_b + ((accum_t)bia << (ACCUM_BIT_WIDTH - INTEGER_BIT_WIDTH - WEIGHT_BIT_WIDTH));
+        accum_t acc6 = acc6_r + acc6_g + acc6_b + ((accum_t)bia << (ACCUM_BIT_WIDTH - INTEGER_BIT_WIDTH - WEIGHT_BIT_WIDTH));
+        accum_t acc7 = acc7_r + acc7_g + acc7_b + ((accum_t)bia << (ACCUM_BIT_WIDTH - INTEGER_BIT_WIDTH - WEIGHT_BIT_WIDTH));
 
-        accum_t acc = (acc0 > acc1) ? acc0 : acc1;
-        acc = (acc > acc2) ? acc : acc2;
-        acc = (acc > acc3) ? acc : acc3;
+        accum_t acc_first = (acc0 > acc1) ? acc0 : acc1;
+        acc_first = (acc_first > acc2) ? acc_first : acc2;
+        acc_first = (acc_first > acc3) ? acc_first : acc3;
 
-        acc = acc >> (ACCUM_BIT_WIDTH - OUTPUT_BIT_WIDTH);
+        accum_t acc_second = (acc4 > acc5) ? acc4 : acc5;
+        acc_second = (acc_second > acc6) ? acc_second : acc6;
+        acc_second = (acc_second > acc7) ? acc_second : acc7;
+
+        maxpool_t acc_sat0, acc_sat1;
+        acc_first = acc_first >> (ACCUM_BIT_WIDTH - MAXPOOL_BIT_WIDTH);
         /* Relu */
-        if (acc < 0)
-          acc_sat = 0;
+        if (acc_first < 0)
+          acc_sat0 = 0;
         else
-          acc_sat = acc;
+          acc_sat0 = acc_first;
+
+        acc_second = acc_second >> (ACCUM_BIT_WIDTH - MAXPOOL_BIT_WIDTH);
+        /* Relu */
+        if (acc_second < 0)
+          acc_sat1 = 0;
+        else
+          acc_sat1 = acc_second;
 
         strmout_t chunk_out;
         chunk_out.last = ((i == CONV_OUTPUT_HEIGHT - 2) && (j == CONV_OUTPUT_WIDTH - 2) && (l == CONV_OFM_NUMBER - 1));
-        chunk_out.data = acc_sat;
+        chunk_out.data.range(31, 0)  = acc_sat0;
+        chunk_out.data.range(63, 32) = acc_sat1;
         chunk_out.keep = 0xF;
         chunk_out.strb = 0xF;
         strm_out.write(chunk_out);

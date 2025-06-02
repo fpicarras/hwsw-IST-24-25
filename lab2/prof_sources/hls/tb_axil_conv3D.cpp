@@ -159,7 +159,7 @@ void sw_convolution_3D_i() {
                     }
 
                 /* Normalize result */
-                accum >>= (ACCUM_BIT_WIDTH - OUTPUT_BIT_WIDTH);
+                accum >>= (ACCUM_BIT_WIDTH - MAXPOOL_BIT_WIDTH);
                 if (accum < 0)
                     accum = 0;
 
@@ -196,8 +196,8 @@ void forward_max_pool_layer_i() {
 int check_output(const int32_t *sw_matrix_out_i, const float *sw_matrix_out_f) {
     // printf("SW Int Output Image\n\r");
     // for(int k = 0; k < CONV_OFM_NUMBER; k ++)
-    //     for (int i = 0; i < HW_MATRIX_OUT_HEIGHT; i++) {
-    //         for (int j = 0; j < HW_MATRIX_OUT_WIDTH; j++) {
+    //     for (int i = 0; i < POOL_OUTPUT_HEIGHT; i++) {
+    //         for (int j = 0; j < POOL_OUTPUT_WIDTH; j++) {
     //             printf("%f ", fixed2float(sw_matrix_out_i[k * HW_MATRIX_OUT_HEIGHT * HW_MATRIX_OUT_WIDTH + i * HW_MATRIX_OUT_WIDTH + j], FRAC_BIT_WIDTH));
     //         }
     //         printf("\n\r");
@@ -205,8 +205,8 @@ int check_output(const int32_t *sw_matrix_out_i, const float *sw_matrix_out_f) {
 
     // printf("SW Float Output Image\n\r");
     // for(int k = 0; k < CONV_OFM_NUMBER; k ++)
-    //     for (int i = 0; i < HW_MATRIX_OUT_HEIGHT; i++) {
-    //         for (int j = 0; j < HW_MATRIX_OUT_WIDTH; j++) {
+    //     for (int i = 0; i < POOL_OUTPUT_HEIGHT; i++) {
+    //         for (int j = 0; j < POOL_OUTPUT_WIDTH; j++) {
     //             printf("%f ", sw_matrix_out_f[k * HW_MATRIX_OUT_HEIGHT * HW_MATRIX_OUT_WIDTH + i * HW_MATRIX_OUT_WIDTH + j]);
     //         }
     //         printf("\n\r");
@@ -223,17 +223,18 @@ int check_output(const int32_t *sw_matrix_out_i, const float *sw_matrix_out_f) {
 
     int err_cnt = 0;
     for(int k = 0; k < CONV_OFM_NUMBER; k ++)
-        for (int i = 0; i < HW_MATRIX_OUT_HEIGHT; i++)
-            for (int j = 0; j < HW_MATRIX_OUT_WIDTH; j++) {
-                int ind = k * HW_MATRIX_OUT_HEIGHT * HW_MATRIX_OUT_WIDTH + i * HW_MATRIX_OUT_WIDTH + j;
-                float diff = fixed2float(hw_matrix_out[ind], FRAC_BIT_WIDTH) - sw_matrix_out_f[ind];
+        for (int i = 0; i < POOL_OUTPUT_HEIGHT; i++)
+            for (int j = 0; j < POOL_OUTPUT_WIDTH; j++) {
+                int ind_hw = k * HW_MATRIX_OUT_HEIGHT * HW_MATRIX_OUT_WIDTH + i * HW_MATRIX_OUT_WIDTH + j;
+                int ind_sw = k * POOL_OUTPUT_HEIGHT * POOL_OUTPUT_WIDTH + i * POOL_OUTPUT_WIDTH + j;
+                float diff = fixed2float(hw_matrix_out[ind_hw], FRAC_BIT_WIDTH) - sw_matrix_out_f[ind_sw];
                 diff = diff > 0 ? diff : -diff;
-                if (hw_matrix_out[ind] != sw_matrix_out_i[ind]) {
+                if (hw_matrix_out[ind_hw] != sw_matrix_out_i[ind_sw]) {
                     err_cnt++;
-                    printf("Int: %d,%d,%d: %d != %d\n\r", k, i, j, hw_matrix_out[ind], sw_matrix_out_i[ind]);
+                    // printf("Int: %d,%d,%d: %d != %d\n\r", k, i, j, hw_matrix_out[ind_hw], sw_matrix_out_i[ind_sw]);
                 } else if (diff > 1E-3) {
                     err_cnt++;
-                    printf("Float: %d,%d,%d: diff = %f\n\r", k, i, j, diff);
+                    // printf("Float: %d,%d,%d: diff = %f\n\r", k, i, j, diff);
                 }
             }
     return err_cnt;
@@ -273,9 +274,12 @@ int main() {
             str_in.write(tmp_in);
         }
         axil_conv3D(str_in, str_out);
-        for (int i = 0; ; i++) {
+        for (int i = 0; ; i+=MAXPOOLS_PER_DATA) {
             tmp_out = str_out.read();
-            hw_matrix_out[i] = tmp_out.data;
+            // hw_matrix_out[i] = tmp_out.data;
+            for(int j = 0; j < MAXPOOLS_PER_DATA; j ++) {
+                hw_matrix_out[i + j] = tmp_out.data.range((j+1)*(MAXPOOL_BIT_WIDTH) - 1, j*MAXPOOL_BIT_WIDTH);
+            }
             if(tmp_out.last) {
                 break;
             }
