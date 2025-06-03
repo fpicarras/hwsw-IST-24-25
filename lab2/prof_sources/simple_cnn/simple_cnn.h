@@ -91,7 +91,7 @@ static unsigned char mem_array[MEM_TOTAL_RESERVED];
 #endif // EMBEDDED
 
 #ifdef __IMAGES_CLASSES__
-const static char image_class[10][9] = {"Airplane", "Bird", "Car", "Cat", "Deer", "Dog",
+static const char image_class[10][9] = {"Airplane", "Bird", "Car", "Cat", "Deer", "Dog",
                                   "Horse", "Monkey", "Ship", "Truck"};
 #endif // __IMAGES_CLASSES__
 

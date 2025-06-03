@@ -32,8 +32,8 @@ void gemmBias(const int16_t *A, const int32_t *B, const int16_t* bias, float *C,
 void gemvOpt(const int16_t *A, const int32_t *B, const int16_t* bias, int64_t *C) {
     for (int i = 0; i < N_CLASSES; i++) {
         int64_t acc = (int64_t) bias[i] << 26;
-        for (int k = 0; k < POOL_OUTPUT_SIZE; k++)
-            acc += (int64_t) A[i * POOL_OUTPUT_SIZE + k] * B[k];
+        for (int k = 0; k < HW_MATRIX_OUT_SIZE; k++)
+            acc += (int64_t) A[i * HW_MATRIX_OUT_SIZE + k] * B[k];
         C[i] = acc;
     }
 }

@@ -80,9 +80,19 @@ void init_memory(addresses * addr) {
           images_file);
     fclose(images_file);
 #else
-    for (int i = 0; i < TOTAL_PARAMS; i++) {
+    for (int i = 0; i < (CONV_LAYER_PARAMS + FC_LAYER_BIASES); i++) {
         addr->int_params[i] = float2fixed(addr->fp_params[i], 15);
     }
+    for(int k = 0; k < CONV_OFM_NUMBER*N_CLASSES; k ++)
+        for (int i = 0; i < POOL_OUTPUT_HEIGHT; i++) {
+            for (int j = 0; j < POOL_OUTPUT_WIDTH; j++) {
+                int ind_hw = k * HW_MATRIX_OUT_HEIGHT * HW_MATRIX_OUT_WIDTH + i * HW_MATRIX_OUT_WIDTH + j + (CONV_LAYER_PARAMS + FC_LAYER_BIASES);
+                int ind_sw = k * POOL_OUTPUT_HEIGHT * POOL_OUTPUT_WIDTH + i * POOL_OUTPUT_WIDTH + j + (CONV_LAYER_PARAMS + FC_LAYER_BIASES);
+                addr->int_params[ind_hw] = float2fixed(addr->fp_params[ind_sw], 15);
+            }
+            int ind_hw = k * HW_MATRIX_OUT_HEIGHT * HW_MATRIX_OUT_WIDTH + i * HW_MATRIX_OUT_WIDTH + POOL_OUTPUT_WIDTH + (CONV_LAYER_PARAMS + FC_LAYER_BIASES);
+            addr->int_params[ind_hw] = 0;
+        }
     Xil_DCacheFlushRange((INTPTR)addr->ch_images, MEM_BIN_IMAGES);
     Xil_DCacheFlushRange((INTPTR)addr->int_params, MEM_BIN_PARAMS);
 #endif // EMBEDDED
