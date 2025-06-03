@@ -276,7 +276,6 @@ int main() {
         axil_conv3D(str_in, str_out);
         for (int i = 0; ; i+=MAXPOOLS_PER_DATA) {
             tmp_out = str_out.read();
-            // hw_matrix_out[i] = tmp_out.data;
             for(int j = 0; j < MAXPOOLS_PER_DATA; j ++) {
                 hw_matrix_out[i + j] = tmp_out.data.range((j+1)*(MAXPOOL_BIT_WIDTH) - 1, j*MAXPOOL_BIT_WIDTH);
             }
