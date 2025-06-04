@@ -24,8 +24,6 @@ static bool weights_ready = false;
       tmp = strm_in.read();
       bias[i]   = (bias_t)tmp.data.range(15, 0);
       bias[i+1] = (bias_t)tmp.data.range(31, 16);
-      bias[i+2] = (bias_t)tmp.data.range(47, 32);
-      bias[i+3] = (bias_t)tmp.data.range(63, 48);
     }
 
     /* Weights Stream */
@@ -34,8 +32,6 @@ static bool weights_ready = false;
       tmp = strm_in.read();
       weights[i]   = (weight_t)tmp.data.range(15, 0);
       weights[i+1] = (weight_t)tmp.data.range(31, 16);
-      weights[i+2] = (weight_t)tmp.data.range(47,32);
-      weights[i+3] = (weight_t)tmp.data.range(63, 48);
     }
   }
 
@@ -46,24 +42,18 @@ static bool weights_ready = false;
     tmp = strm_in.read();
     image_red[i] = tmp.data.range(15, 0);
     image_red[i+1] = tmp.data.range(31, 16);
-    image_red[i+2] = tmp.data.range(47, 32);
-    image_red[i+3] = tmp.data.range(63, 48);
   }
   loop_green: 
   for(int i = 0; i < IMAGE_HEIGHT*IMAGE_WIDTH; i += PIXEL_PER_DATA) {
     tmp = strm_in.read();
     image_green[i] = tmp.data.range(15, 0);
     image_green[i+1] = tmp.data.range(31, 16);
-    image_green[i+2] = tmp.data.range(47, 32);
-    image_green[i+3] = tmp.data.range(63, 48);
   }
   loop_blue: 
   for(int i = 0; i < IMAGE_HEIGHT*IMAGE_WIDTH; i += PIXEL_PER_DATA) {
     tmp = strm_in.read();
     image_blue[i] = tmp.data.range(15, 0);
     image_blue[i+1] = tmp.data.range(31, 16);
-    image_blue[i+2] = tmp.data.range(47, 32);
-    image_blue[i+3] = tmp.data.range(63, 48);
   }
 
   loop_conv:
@@ -213,8 +203,8 @@ static bool weights_ready = false;
         chunk_out.last = ((i == CONV_OUTPUT_HEIGHT - 2) && (j == CONV_OUTPUT_WIDTH - 2) && (l == CONV_OFM_NUMBER - 1));
         chunk_out.data.range(31, 0)  = acc_sat0;
         chunk_out.data.range(63, 32) = acc_sat1;
-        chunk_out.keep = 0xF;
-        chunk_out.strb = 0xF;
+        chunk_out.keep = 0xFF;
+        chunk_out.strb = 0xFF;
         strm_out.write(chunk_out);
       }
     }
