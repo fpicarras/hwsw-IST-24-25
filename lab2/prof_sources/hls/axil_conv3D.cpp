@@ -93,74 +93,74 @@ static bool weights_ready = false;
         maxpool_t maxpool_result = 0;
         accum_t best_max = 0;
 
-        for(int ml = 0; ml < POOL_KERNEL_SIZE; ml++)              // BUG OUT OF BOUNDRIES
+        for(int ml = 0; ml < POOL_KERNEL_SIZE; ml++)  {
+        #pragma HLS PIPELINE
           for(int mc = 0; mc < POOL_KERNEL_SIZE; mc++) {
             accum_t acc_r, acc_g, acc_b;
 
-            #pragma HLS PIPELINE
             // Base image idx
-            int image_idx = i*IMAGE_WIDTH + j + CONV_KERNEL_SIZE*(mc + IMAGE_WIDTH*ml);
+            int image_idx = (i + ml)*IMAGE_WIDTH + (j + mc);
             // Aux idx
             int curr_image_idx;
             
             // [0][0]
             curr_image_idx = image_idx;
             acc_r = kernel_r[0]*image_red[curr_image_idx];
-            acc_g = kernel_r[0]*image_green[curr_image_idx];
-            acc_b = kernel_r[0]*image_blue[curr_image_idx];
+            acc_g = kernel_g[0]*image_green[curr_image_idx];
+            acc_b = kernel_b[0]*image_blue[curr_image_idx];
 
             // [0][1]
             curr_image_idx = image_idx + 1;
             acc_r += kernel_r[1]*image_red[curr_image_idx];
-            acc_g += kernel_r[1]*image_green[curr_image_idx];
-            acc_b += kernel_r[1]*image_blue[curr_image_idx];
+            acc_g += kernel_g[1]*image_green[curr_image_idx];
+            acc_b += kernel_b[1]*image_blue[curr_image_idx];
 
             // [0][2]
             curr_image_idx = image_idx + 2;
             acc_r += kernel_r[2]*image_red[curr_image_idx];
-            acc_g += kernel_r[2]*image_green[curr_image_idx];
-            acc_b += kernel_r[2]*image_blue[curr_image_idx];
+            acc_g += kernel_g[2]*image_green[curr_image_idx];
+            acc_b += kernel_b[2]*image_blue[curr_image_idx];
 
             // [1][0]
             curr_image_idx = image_idx + IMAGE_WIDTH;
             acc_r += kernel_r[3]*image_red[curr_image_idx];
-            acc_g += kernel_r[3]*image_green[curr_image_idx];
-            acc_b += kernel_r[3]*image_blue[curr_image_idx];
+            acc_g += kernel_g[3]*image_green[curr_image_idx];
+            acc_b += kernel_b[3]*image_blue[curr_image_idx];
 
             // [1][1]
             curr_image_idx = image_idx + IMAGE_WIDTH + 1;
             acc_r += kernel_r[4]*image_red[curr_image_idx];
-            acc_g += kernel_r[4]*image_green[curr_image_idx];
-            acc_b += kernel_r[4]*image_blue[curr_image_idx];
+            acc_g += kernel_g[4]*image_green[curr_image_idx];
+            acc_b += kernel_b[4]*image_blue[curr_image_idx];
 
             // [1][2]
             curr_image_idx = image_idx + IMAGE_WIDTH + 2;
             acc_r += kernel_r[5]*image_red[curr_image_idx];
-            acc_g += kernel_r[5]*image_green[curr_image_idx];
-            acc_b += kernel_r[5]*image_blue[curr_image_idx];
+            acc_g += kernel_g[5]*image_green[curr_image_idx];
+            acc_b += kernel_b[5]*image_blue[curr_image_idx];
 
             // [2][0]
             curr_image_idx = image_idx + 2*IMAGE_WIDTH;
             acc_r += kernel_r[6]*image_red[curr_image_idx];
-            acc_g += kernel_r[6]*image_green[curr_image_idx];
-            acc_b += kernel_r[6]*image_blue[curr_image_idx];
+            acc_g += kernel_g[6]*image_green[curr_image_idx];
+            acc_b += kernel_b[6]*image_blue[curr_image_idx];
 
             // [2][1]
             curr_image_idx = image_idx + 2*IMAGE_WIDTH + 1;
             acc_r += kernel_r[7]*image_red[curr_image_idx];
-            acc_g += kernel_r[7]*image_green[curr_image_idx];
-            acc_b += kernel_r[7]*image_blue[curr_image_idx];
+            acc_g += kernel_g[7]*image_green[curr_image_idx];
+            acc_b += kernel_b[7]*image_blue[curr_image_idx];
 
             // [2][2]
             curr_image_idx = image_idx + 2*IMAGE_WIDTH + 2;
             acc_r += kernel_r[8]*image_red[curr_image_idx];
-            acc_g += kernel_r[8]*image_green[curr_image_idx];
-            acc_b += kernel_r[8]*image_blue[curr_image_idx];
+            acc_g += kernel_g[8]*image_green[curr_image_idx];
+            acc_b += kernel_b[8]*image_blue[curr_image_idx];
 
             accum_t acc = acc_r + acc_g + acc_b + bia;
             best_max = (best_max < acc) ? acc : best_max;
           }       
-        
+        }
         // End of a maxpool cycle
         best_max = best_max >> (ACCUM_BIT_WIDTH - MAXPOOL_BIT_WIDTH); 
         // ReLU
