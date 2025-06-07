@@ -9,19 +9,19 @@
 /* ========================== START OF TEST SET CONFIGURATION ========================== */
 
 #define N_IMAGES 1                   /* number of images in the binary file */
-#define IMAGE_HEIGHT 88              /* width of the images */
+#define IMAGE_HEIGHT 12              /* width of the images */
 #define IMAGE_WIDTH IMAGE_HEIGHT     /* height of the images */
 #define IMAGE_CHANNELS 3             /* number of channels (red + green + blue) */
 #define N_CLASSES 10                 /* number of possible classes */
-#define WEIGHTS_FILENAME "/home/joao-pedro/Documents/Tecnico/Y1-P4/HW/Labs/hwsw-IST-24-25/lab2/prof_sources/simple_cnn/weights.bin"   /* file where the weights are stored */
-#define IMAGES_FILENAME "/home/joao-pedro/Documents/Tecnico/Y1-P4/HW/Labs/hwsw-IST-24-25/lab2/prof_sources/simple_cnn/images.bin" /* file where the images are stored */
-// #define WEIGHTS_FILENAME "weights.bin"   /* file where the weights are stored */
-// #define IMAGES_FILENAME  "images.bin" /* file where the images are stored */
+//#define WEIGHTS_FILENAME "/home/joao-pedro/Documents/Tecnico/Y1-P4/HW/Labs/hwsw-IST-24-25/lab2/prof_sources/simple_cnn/weights.bin"   /* file where the weights are stored */
+//#define IMAGES_FILENAME "/home/joao-pedro/Documents/Tecnico/Y1-P4/HW/Labs/hwsw-IST-24-25/lab2/prof_sources/simple_cnn/images.bin" /* file where the images are stored */
+#define WEIGHTS_FILENAME "weights.bin"   /* file where the weights are stored */
+#define IMAGES_FILENAME  "images.bin" /* file where the images are stored */
 /* =========================== END OF TEST SET CONFIGURATION =========================== */
 
 /* ============================ START OF MODEL CONFIGURATION =========================== */
 #define CONV_KERNEL_SIZE 3               /* size of the convolution kernel */
-#define CONV_OFM_NUMBER 16               /* number of OFMs of convolutional layer */
+#define CONV_OFM_NUMBER 1               /* number of OFMs of convolutional layer */
 #define POOL_KERNEL_SIZE 2               /* size of pooling kernel */
 #define POOL_STRIDE 2                    /* stride of pooling operation */
 /* ============================== END OF RUN CONFIGURATION ============================= */
@@ -32,7 +32,7 @@
 #define IMAGE_BIT_WIDTH 16
 #define PIXEL_BIT_WIDTH 16
 #define MAXPOOL_BIT_WIDTH 32
-#define OUTPUT_BIT_WIDTH 64
+#define OUTPUT_BIT_WIDTH 32
 #define INPUT_BIT_WIDTH 64
 #define INTEGER_BIT_WIDTH 5
 #define ACCUM_BIT_WIDTH WEIGHT_BIT_WIDTH + IMAGE_BIT_WIDTH + INTEGER_BIT_WIDTH - 1
@@ -70,7 +70,7 @@ typedef hls::axis<output_t, 0, 0, 0> strmout_t;
 #define CONV_OUTPUT_SIZE CONV_OUTPUT_HEIGHT * CONV_OUTPUT_WIDTH * CONV_OFM_NUMBER
 #define POOL_OUTPUT_SIZE POOL_OUTPUT_HEIGHT * POOL_OUTPUT_WIDTH * CONV_OFM_NUMBER
 #define HW_MATRIX_OUT_HEIGHT POOL_OUTPUT_HEIGHT
-#define HW_MATRIX_OUT_WIDTH (POOL_OUTPUT_WIDTH + 1)
+#define HW_MATRIX_OUT_WIDTH (POOL_OUTPUT_WIDTH)
 #define HW_MATRIX_OUT_SIZE HW_MATRIX_OUT_HEIGHT * HW_MATRIX_OUT_WIDTH * CONV_OFM_NUMBER
 #define FRAC_BIT_WIDTH MAXPOOL_BIT_WIDTH - INTEGER_BIT_WIDTH - 1
 

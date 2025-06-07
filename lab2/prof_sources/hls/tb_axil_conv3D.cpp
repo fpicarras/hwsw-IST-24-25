@@ -194,14 +194,14 @@ void forward_max_pool_layer_i() {
 }
 
 int check_output(const int32_t *sw_matrix_out_i, const float *sw_matrix_out_f) {
-    // printf("SW Int Output Image\n\r");
-    // for(int k = 0; k < CONV_OFM_NUMBER; k ++)
-    //     for (int i = 0; i < POOL_OUTPUT_HEIGHT; i++) {
-    //         for (int j = 0; j < POOL_OUTPUT_WIDTH; j++) {
-    //             printf("%f ", fixed2float(sw_matrix_out_i[k * HW_MATRIX_OUT_HEIGHT * HW_MATRIX_OUT_WIDTH + i * HW_MATRIX_OUT_WIDTH + j], FRAC_BIT_WIDTH));
-    //         }
-    //         printf("\n\r");
-    //     }
+    printf("SW Int Output Image\n\r");
+    for(int k = 0; k < CONV_OFM_NUMBER; k ++)
+        for (int i = 0; i < POOL_OUTPUT_HEIGHT; i++) {
+            for (int j = 0; j < POOL_OUTPUT_WIDTH; j++) {
+                printf("%f ", fixed2float(sw_matrix_out_i[k * HW_MATRIX_OUT_HEIGHT * HW_MATRIX_OUT_WIDTH + i * HW_MATRIX_OUT_WIDTH + j], FRAC_BIT_WIDTH));
+            }
+            printf("\n\r");
+        }
 
     // printf("SW Float Output Image\n\r");
     // for(int k = 0; k < CONV_OFM_NUMBER; k ++)
@@ -212,14 +212,14 @@ int check_output(const int32_t *sw_matrix_out_i, const float *sw_matrix_out_f) {
     //         printf("\n\r");
     //     }
 
-    // printf("HW Output Image\n\r");
-    // for(int k = 0; k < CONV_OFM_NUMBER; k ++)
-    //     for (int i = 0; i < HW_MATRIX_OUT_HEIGHT; i++) {
-    //         for (int j = 0; j < HW_MATRIX_OUT_WIDTH; j++) {
-    //             printf("%f ", fixed2float(hw_matrix_out[k * HW_MATRIX_OUT_HEIGHT * HW_MATRIX_OUT_WIDTH + i * HW_MATRIX_OUT_WIDTH + j], FRAC_BIT_WIDTH));
-    //         }
-    //         printf("\n\r");
-    //     }
+    printf("HW Output Image\n\r");
+    for(int k = 0; k < CONV_OFM_NUMBER; k ++)
+        for (int i = 0; i < HW_MATRIX_OUT_HEIGHT; i++) {
+            for (int j = 0; j < HW_MATRIX_OUT_WIDTH; j++) {
+                printf("%f ", fixed2float(hw_matrix_out[k * HW_MATRIX_OUT_HEIGHT * HW_MATRIX_OUT_WIDTH + i * HW_MATRIX_OUT_WIDTH + j], FRAC_BIT_WIDTH));
+            }
+            printf("\n\r");
+        }
 
     int err_cnt = 0;
     for(int k = 0; k < CONV_OFM_NUMBER; k ++)
@@ -231,7 +231,7 @@ int check_output(const int32_t *sw_matrix_out_i, const float *sw_matrix_out_f) {
                 diff = diff > 0 ? diff : -diff;
                 if (hw_matrix_out[ind_hw] != sw_matrix_out_i[ind_sw]) {
                     err_cnt++;
-                    // printf("Int: %d,%d,%d: %d != %d\n\r", k, i, j, hw_matrix_out[ind_hw], sw_matrix_out_i[ind_sw]);
+                    //printf("[%d] Int: %d,%d,%d: %d != %d\n\r", err_cnt, k, i, j, hw_matrix_out[ind_hw], sw_matrix_out_i[ind_sw]);
                 } else if (diff > 1E-3) {
                     err_cnt++;
                     // printf("Float: %d,%d,%d: diff = %f\n\r", k, i, j, diff);
