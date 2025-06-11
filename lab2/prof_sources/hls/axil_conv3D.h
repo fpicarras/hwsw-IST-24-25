@@ -8,7 +8,7 @@
 
 /* ========================== START OF TEST SET CONFIGURATION ========================== */
 
-#define N_IMAGES 1                   /* number of images in the binary file */
+#define N_IMAGES 2                   /* number of images in the binary file */
 #define IMAGE_HEIGHT 88              /* width of the images */
 #define IMAGE_WIDTH IMAGE_HEIGHT     /* height of the images */
 #define IMAGE_CHANNELS 3             /* number of channels (red + green + blue) */
