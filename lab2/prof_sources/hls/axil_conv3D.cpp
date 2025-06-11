@@ -16,7 +16,10 @@ static bias_t bias[CONV_OFM_NUMBER];
 static bool weights_ready = false;
 
   strmin_t tmp;
-
+  /** We only recieve the kernel/bias values once
+   * Since they are streamed with a 64bit bus, we recieve
+   * 4 values at a time
+   */
   if(!weights_ready) {
     /* Bias Stream */
     loop_bias:
@@ -40,7 +43,12 @@ static bool weights_ready = false;
   }
 
   weights_ready = true;
-  /* Input Image Stream */
+  /** Input Image Stream
+   * Input image is streamed in chunks, first the red channel,
+   * then the green channel and finally the blue channel.
+   * Each channel is streamed in chunks of 4 pixels
+   * (64 bits = 4 * 16 bits)
+   */
   loop_red: 
   for(int i = 0; i < IMAGE_HEIGHT*IMAGE_WIDTH; i += PIXEL_PER_DATA) {
     tmp = strm_in.read();
@@ -82,6 +90,8 @@ static bool weights_ready = false;
   #pragma HLS PIPELINE
           // Indices are initialized here to highlight
           // the incremental counting in the inner loop
+          // This loop calculates 8 different positions of the output
+          // conv at the same time, in order to perform 2 maxpool operations
           int kernel_1d_idx = k * CONV_KERNEL_SIZE + l*(CONV_KERNEL_SIZE*CONV_KERNEL_SIZE*IMAGE_CHANNELS); /* start of kernel row */
           int image_1d_idx_base = (i + k) * IMAGE_WIDTH + j; /* start of input row */
           loop_x:
@@ -175,7 +185,8 @@ static bool weights_ready = false;
             acc7_b += weight_b * image7_b;
           }
         }
-
+        
+        // Summing the 3 dimensions of the accumulators
         accum_t bia = ((accum_t)bias[l] << (ACCUM_BIT_WIDTH - INTEGER_BIT_WIDTH - WEIGHT_BIT_WIDTH));
         accum_t acc0 = acc0_r + acc0_g + acc0_b + bia;
         accum_t acc1 = acc1_r + acc1_g + acc1_b + bia;
@@ -186,6 +197,7 @@ static bool weights_ready = false;
         accum_t acc6 = acc6_r + acc6_g + acc6_b + bia;
         accum_t acc7 = acc7_r + acc7_g + acc7_b + bia;
 
+        // Maxpooling
         accum_t acc_first = (acc0 > acc1) ? acc0 : acc1;
         acc_first = (acc_first > acc2) ? acc_first : acc2;
         acc_first = (acc_first > acc3) ? acc_first : acc3;
@@ -209,6 +221,8 @@ static bool weights_ready = false;
         else
           acc_sat1 = acc_second;
 
+        // Output Stream
+        // Each output chunk contains 2 maxpool values (32 bits each)
         strmout_t chunk_out;
         chunk_out.last = ((i == CONV_OUTPUT_HEIGHT - 2) && (j == CONV_OUTPUT_WIDTH - 2) && (l == CONV_OFM_NUMBER - 1));
         chunk_out.data.range(31, 0)  = acc_sat0;

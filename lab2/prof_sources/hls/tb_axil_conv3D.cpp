@@ -19,16 +19,38 @@ static float maxpool_f[POOL_OUTPUT_SIZE];
 
 static int32_t hw_matrix_out[HW_MATRIX_OUT_SIZE];
 
+/**
+ * @brief Convert float to fixed point representation
+ * @param f The float value to convert
+ * @param scale The scale factor for the fixed point representation
+ * 
+ * @return The fixed point (int) representation of the float value
+ */
 int float2fixed(float f, int scale) {
     f = f * (float)(1 << scale);
     f += 0.5F;
   return (int)(f);
 }
 
+/**
+ * @brief Convert fixed point representation to float
+ * @param i The fixed point (int) value to convert
+ * @param scale The scale factor for the fixed point representation
+ * 
+ * @return The float representation of the fixed point value
+ */
 float fixed2float(int i, int scale) {
   return (float)i / (float)(1 << scale);
 }
 
+/**
+ * @brief Normalize the input RGB image
+ * The input image is normalized to the range [-1, 1], 
+ * where each pixel value is divided by 255 and then scaled to the range [-0.5, 0.5].
+ * @param rgb_image Pointer to the input RGB image data
+ * 
+ * The output is stored in the global `image_in_f` and `image_in_i` arrays.
+ */
 void normalize_image(const unsigned char *rgb_image) {
     for (int i = 0; i < IMAGE_SIZE; i++) {
         image_in_f[i] = ((float) rgb_image[i] / 255 - 0.5F) / 0.5F;
@@ -36,6 +58,21 @@ void normalize_image(const unsigned char *rgb_image) {
     }   
 }
 
+/**
+ * @brief Initialize input data for the convolution layer
+ * This function reads the weights and biases from a binary file and the input images from another binary file.
+ * It populates the global arrays `image_in`, `kernel_i`, `bias_i`, `kernel_f`, and `bias_f`.
+ * The weights and biases are read in fixed-point (Q15) format, while the images are read in unsigned char format.
+ * 
+ * @note The function assumes that the files exist and are correctly formatted. Populates the global arrays:
+ * - `image_in`: Input images in unsigned char format
+ * - `kernel_i`: Convolution kernel weights in fixed-point (Q15) format
+ * - `bias_i`: Convolution layer biases in fixed-point (Q15) format
+ * - `kernel_f`: Convolution kernel weights in float format
+ * - `bias_f`: Convolution layer biases in float format
+ * 
+ * @throws Assertion failure if the files cannot be opened or read correctly.
+ */
 void init_inputs() {
 
   float fp_params [CONV_LAYER_PARAMS];
@@ -66,6 +103,13 @@ void init_inputs() {
   }
 }
 
+/**
+ * @brief Perform 3D convolution on the input image
+ * This function applies a 3D convolution operation on the input image (`image_in_f`) using the specified kernel and biases.
+ * 
+ * The convolution is performed for each output feature map (OFM) and each pixel in the output image.
+ * The result is stored in the global `image_out_f` array.
+ */
 void sw_convolution_3D_f() {
     for(int l = 0; l < CONV_OFM_NUMBER; l ++)
         for (int i = 0; i < CONV_OUTPUT_HEIGHT; i++)
@@ -95,7 +139,7 @@ void sw_convolution_3D_f() {
                         accum += w * im; 
                     }
 
-                /* Normalize result */
+                /* Normalize result -> ReLU */
                 if (accum < 0)
                     accum = 0;
 
@@ -103,6 +147,11 @@ void sw_convolution_3D_f() {
             }
 }
 
+/**
+ * @brief Perform max pooling on the output of the convolution layer
+ * This function applies max pooling on the output of the convolution layer (`image_out_f`).
+ * It computes the maximum value in each pooling window and stores the result in the global `maxpool_f` array.
+ */
 void forward_max_pool_layer_f() {
     for (int i = 0; i < POOL_OUTPUT_HEIGHT; i++)
         for (int j = 0; j < POOL_OUTPUT_WIDTH; j++)
@@ -129,6 +178,14 @@ void forward_max_pool_layer_f() {
             }
 }
 
+/**
+ * @brief Perform 3D convolution on the input image using fixed-point representation
+ * This function applies a 3D convolution operation on the input image (`image_in_i`) using the specified kernel and biases.
+ * The result is stored in the global `image_out_i` array.
+ * 
+ * The need for an additional function arises because the convolution operation is performed in fixed-point representation, 
+ * which requires careful handling of bit widths and scaling. This is used to ensure the result from the IP is correct.
+ */
 void sw_convolution_3D_i() {
     for(int l = 0; l < CONV_OFM_NUMBER; l ++)
         for (int i = 0; i < CONV_OUTPUT_HEIGHT; i++)
@@ -167,6 +224,14 @@ void sw_convolution_3D_i() {
             }
 }
 
+/**
+ * @brief Perform max pooling on the output of the convolution layer using fixed-point representation
+ * This function applies max pooling on the output of the convolution layer (`image_out_i`).
+ * It computes the maximum value in each pooling window and stores the result in the global `maxpool_i` array.
+ * 
+ * The need for an additional function arises because the max pooling operation is performed in fixed-point representation, 
+ * which requires careful handling of bit widths and scaling. This is used to ensure the result from the IP is correct.
+ */
 void forward_max_pool_layer_i() {
     for (int i = 0; i < POOL_OUTPUT_HEIGHT; i++)
         for (int j = 0; j < POOL_OUTPUT_WIDTH; j++)
@@ -193,34 +258,17 @@ void forward_max_pool_layer_i() {
             }
 }
 
+/**
+ * @brief Check the output of the hardware implementation against the software implementation
+ * This function compares the output of the hardware implementation (`hw_matrix_out`, global) with the expected output from the software implementation.
+ * It counts the number of discrepancies between the two outputs.
+ * 
+ * @param sw_matrix_out_i Pointer to the expected output in fixed-point representation
+ * @param sw_matrix_out_f Pointer to the expected output in float representation
+ * 
+ * @return The number of discrepancies found between the hardware and software outputs
+ */
 int check_output(const int32_t *sw_matrix_out_i, const float *sw_matrix_out_f) {
-    // printf("SW Int Output Image\n\r");
-    // for(int k = 0; k < CONV_OFM_NUMBER; k ++)
-    //     for (int i = 0; i < POOL_OUTPUT_HEIGHT; i++) {
-    //         for (int j = 0; j < POOL_OUTPUT_WIDTH; j++) {
-    //             printf("%f ", fixed2float(sw_matrix_out_i[k * HW_MATRIX_OUT_HEIGHT * HW_MATRIX_OUT_WIDTH + i * HW_MATRIX_OUT_WIDTH + j], FRAC_BIT_WIDTH));
-    //         }
-    //         printf("\n\r");
-    //     }
-
-    // printf("SW Float Output Image\n\r");
-    // for(int k = 0; k < CONV_OFM_NUMBER; k ++)
-    //     for (int i = 0; i < POOL_OUTPUT_HEIGHT; i++) {
-    //         for (int j = 0; j < POOL_OUTPUT_WIDTH; j++) {
-    //             printf("%f ", sw_matrix_out_f[k * HW_MATRIX_OUT_HEIGHT * HW_MATRIX_OUT_WIDTH + i * HW_MATRIX_OUT_WIDTH + j]);
-    //         }
-    //         printf("\n\r");
-    //     }
-
-    // printf("HW Output Image\n\r");
-    // for(int k = 0; k < CONV_OFM_NUMBER; k ++)
-    //     for (int i = 0; i < HW_MATRIX_OUT_HEIGHT; i++) {
-    //         for (int j = 0; j < HW_MATRIX_OUT_WIDTH; j++) {
-    //             printf("%f ", fixed2float(hw_matrix_out[k * HW_MATRIX_OUT_HEIGHT * HW_MATRIX_OUT_WIDTH + i * HW_MATRIX_OUT_WIDTH + j], FRAC_BIT_WIDTH));
-    //         }
-    //         printf("\n\r");
-    //     }
-
     int err_cnt = 0;
     for(int k = 0; k < CONV_OFM_NUMBER; k ++)
         for (int i = 0; i < POOL_OUTPUT_HEIGHT; i++)
@@ -247,7 +295,10 @@ int main() {
     strmin_t tmp_in;
     strmout_t tmp_out;
     int err_cnt = 0;
+
+    // Loop over the images to process
     for(int k = 0; k < N_IMAGES; k ++) {
+        // On the fisrt iteration, we send to the IP the weights and biases
         if(k == 0) {
             for (int i = 0; i < CONV_LAYER_BIASES; i+=BIAS_PER_DATA) {
                 for(int j = 0; j < BIAS_PER_DATA; j ++) {
@@ -264,8 +315,9 @@ int main() {
                 str_in.write(tmp_in);
             }
         }
-        normalize_image((unsigned char *) &image_in[k*IMAGE_SIZE]);
 
+        // Normalize and stream the input image
+        normalize_image((unsigned char *) &image_in[k*IMAGE_SIZE]);
         for (int i = 0; i < IMAGE_SIZE; i+=PIXEL_PER_DATA) {
             for(int j = 0; j < PIXEL_PER_DATA; j ++) {
                 tmp_in.data((j+1)*(PIXEL_BIT_WIDTH) - 1, j*PIXEL_BIT_WIDTH) = image_in_i[i + j];
@@ -273,7 +325,9 @@ int main() {
             tmp_in.last = (ap_int<1>)(i == IMAGE_SIZE - PIXEL_PER_DATA);
             str_in.write(tmp_in);
         }
+        // Call the hardware convolution and max pooling function
         axil_conv3D(str_in, str_out);
+        // Read the output from the hardware
         for (int i = 0; ; i+=MAXPOOLS_PER_DATA) {
             tmp_out = str_out.read();
             for(int j = 0; j < MAXPOOLS_PER_DATA; j ++) {
@@ -284,11 +338,13 @@ int main() {
             }
         }
 
+        // Perform the software convolution and max pooling
         sw_convolution_3D_i();
         forward_max_pool_layer_i();
         sw_convolution_3D_f();
         forward_max_pool_layer_f();
 
+        // Check the output against the software implementation
         err_cnt += check_output(maxpool_i, maxpool_f);
     }
     return err_cnt;
